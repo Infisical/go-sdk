@@ -1,5 +1,6 @@
 package util
 
+// Auth related:
 const (
 
 	// Universal auth:
@@ -41,4 +42,9 @@ const (
 	AWS_IAM        AuthMethod = "AWS_IAM"
 	KUBERNETES     AuthMethod = "KUBERNETES"
 	AZURE          AuthMethod = "AZURE"
+)
+
+// General:
+const (
+	DEFAULT_INFISICAL_API_URL = "https://app.infisical.com/api"
 )
