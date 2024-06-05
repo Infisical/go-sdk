@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/go-resty/resty/v2"
 )
 
@@ -13,11 +15,11 @@ func CallUniversalAuthLogin(httpClient *resty.Client, request UniversalAuthLogin
 		Post("/v1/auth/universal-auth/login")
 
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("CallUniversalAuthLogin: Unable to complete api request [err=%s]", err)
 	}
 
 	if response.IsError() {
-		return "", response.Error().(error)
+		return "", fmt.Errorf("CallUniversalAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
 	}
 
 	return responseData.AccessToken, nil
