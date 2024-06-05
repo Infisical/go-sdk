@@ -28,19 +28,19 @@ type Config struct {
 }
 
 func ValidateAuth(ao *Authentication) (util.AuthMethod, error) {
-	if ao.universalAuth.clientId != "" && ao.universalAuth.clientSecret != "" {
+	if ao.UniversalAuth.ClientID != "" && ao.UniversalAuth.ClientSecret != "" {
 		return util.UNIVERSAL_AUTH, nil
-	} else if ao.gcpIdTokenAuth.identityId != "" {
+	} else if ao.GCPIdToken.IdentityID != "" {
 		return util.GCP_ID_TOKEN, nil
-	} else if ao.gcpIamAuth.identityId != "" && ao.gcpIamAuth.serviceAccountKeyFilePath != "" {
+	} else if ao.GCPIam.IdentityID != "" && ao.GCPIam.ServiceAccountKeyFilePath != "" {
 		return util.GCP_IAM, nil
-	} else if ao.awsIamAuth.identityId != "" {
+	} else if ao.AWSIam.IdentityID != "" {
 		return util.AWS_IAM, nil
-	} else if ao.azureAuth.identityId != "" {
+	} else if ao.Azure.IdentityID != "" {
 		return util.AZURE, nil
-	} else if ao.kubernetesAuth.identityId != "" && ao.kubernetesAuth.serviceAccountTokenPath != "" {
+	} else if ao.Kubernetes.IdentityID != "" && ao.Kubernetes.ServiceAccountTokenPath != "" {
 		return util.KUBERNETES, nil
-	} else if ao.accessToken != "" {
+	} else if ao.AccessToken != "" {
 		return util.ACCESS_TOKEN, nil
 	}
 
@@ -70,27 +70,27 @@ func ValidateAuth(ao *Authentication) (util.AuthMethod, error) {
 	accessTokenEnv := os.Getenv(util.INFISICAL_ACCESS_TOKEN_ENV_NAME)
 
 	if universalAuthClientIdEnv != "" && universalAuthClientSecretEnv != "" {
-		ao.universalAuth.clientId = universalAuthClientIdEnv
-		ao.universalAuth.clientSecret = universalAuthClientSecretEnv
+		ao.UniversalAuth.ClientID = universalAuthClientIdEnv
+		ao.UniversalAuth.ClientSecret = universalAuthClientSecretEnv
 		return util.UNIVERSAL_AUTH, nil
 	} else if gcpIdTokenIdentityIdEnv != "" {
-		ao.gcpIdTokenAuth.identityId = gcpIdTokenIdentityIdEnv
+		ao.GCPIdToken.IdentityID = gcpIdTokenIdentityIdEnv
 		return util.GCP_ID_TOKEN, nil
 	} else if gcpIamIdentityIdEnv != "" {
-		ao.gcpIamAuth.identityId = gcpIamIdentityIdEnv
+		ao.GCPIam.IdentityID = gcpIamIdentityIdEnv
 		return util.GCP_IAM, nil
 	} else if awsIamIdentityIdEnv != "" {
-		ao.awsIamAuth.identityId = awsIamIdentityIdEnv
+		ao.AWSIam.IdentityID = awsIamIdentityIdEnv
 		return util.AWS_IAM, nil
 	} else if azureIdentityIdEnv != "" {
-		ao.azureAuth.identityId = azureIdentityIdEnv
+		ao.Azure.IdentityID = azureIdentityIdEnv
 		return util.AZURE, nil
 	} else if kubernetesIdentityIdEnv != "" && kubernetesServiceAccountTokenPathEnv != "" {
-		ao.kubernetesAuth.identityId = kubernetesIdentityIdEnv
-		ao.kubernetesAuth.serviceAccountTokenPath = kubernetesServiceAccountTokenPathEnv
+		ao.Kubernetes.IdentityID = kubernetesIdentityIdEnv
+		ao.Kubernetes.ServiceAccountTokenPath = kubernetesServiceAccountTokenPathEnv
 		return util.KUBERNETES, nil
 	} else if accessTokenEnv != "" {
-		ao.accessToken = accessTokenEnv
+		ao.AccessToken = accessTokenEnv
 		return util.ACCESS_TOKEN, nil
 	}
 
@@ -101,6 +101,10 @@ func NewInfisicalClient(config Config) (*Client, error) {
 
 	if config.UserAgent == "" {
 		config.UserAgent = "infisical-go-sdk"
+	}
+
+	if config.SiteUrl == "" {
+		config.SiteUrl = util.DEFAULT_INFISICAL_API_URL
 	}
 
 	config.SiteUrl = util.AppendAPIEndpoint(config.SiteUrl)
