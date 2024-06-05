@@ -13,11 +13,11 @@ func (c *Client) authenticateHttpClient() error {
 
 	switch c.authMethod {
 	case util.ACCESS_TOKEN:
-		accessToken = c.config.Auth.accessToken
+		accessToken = c.config.Auth.AccessToken
 	case util.UNIVERSAL_AUTH:
 		accessToken, err = api.CallUniversalAuthLogin(c.httpClient, api.UniversalAuthLoginRequest{
-			ClientId:     c.config.Auth.universalAuth.clientId,
-			ClientSecret: c.config.Auth.universalAuth.clientSecret,
+			ClientID:     c.config.Auth.UniversalAuth.ClientID,
+			ClientSecret: c.config.Auth.UniversalAuth.ClientSecret,
 		})
 	}
 
