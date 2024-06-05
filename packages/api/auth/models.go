@@ -1,7 +1,7 @@
 package api
 
 type UniversalAuthLoginRequest struct {
-	ClientId     string `json:"clientId"`
+	ClientID     string `json:"clientId"`
 	ClientSecret string `json:"clientSecret"`
 }
 
