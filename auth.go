@@ -205,6 +205,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	// You can use the stsClient to perform operations if needed
 	// For example, calling GetCallerIdentity to validate credentials
 	_, err = stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
+
 	if err != nil {
 		return "", fmt.Errorf("unable to get caller identity, %v", err)
 	}
@@ -233,8 +234,10 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 7\n")
 
+	currentTime := time.Now().UTC()
+
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("X-Amz-Date", time.Now().UTC().Format("20060102T150405Z"))
+	req.Header.Add("X-Amz-Date", currentTime.Format("20060102T150405Z"))
 	req.Header.Add("Host", fmt.Sprintf("sts.%s.amazonaws.com", awsRegion))
 
 	fmt.Printf("Test: 8\n")
@@ -247,7 +250,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 9\n")
 
-	headers, err := v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, time.Now())
+	headers, err := v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, currentTime)
 	if err != nil {
 		return "", fmt.Errorf("error signing request: %v", err)
 	}
