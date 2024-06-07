@@ -179,6 +179,9 @@ func (a *Auth) GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath stri
 }
 
 func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error) {
+
+	fmt.Printf("Test: 1\n")
+
 	if identityId == "" {
 		identityId = os.Getenv(util.INFISICAL_AWS_IAM_AUTH_IDENTITY_ID_ENV_NAME)
 	}
