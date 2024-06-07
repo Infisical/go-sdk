@@ -7,7 +7,7 @@ import (
 )
 
 func CallUniversalAuthLogin(httpClient *resty.Client, request UniversalAuthLoginRequest) (accessToken string, e error) {
-	var responseData UniversalAuthLoginResponse
+	var responseData GenericAuthLoginResponse
 
 	response, err := httpClient.R().
 		SetResult(&responseData).
