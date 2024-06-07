@@ -253,7 +253,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	fmt.Printf("Test: 9\n")
 
 	headers, err := v4.NewSigner(credentials, func(s *v4.Signer) {
-		s.DisableHeaderHoisting = true
+		// s.DisableHeaderHoisting = true
 		s.Debug = aws.LogDebug
 	}).Sign(req, nil, "sts", awsRegion, currentTime)
 	if err != nil {
