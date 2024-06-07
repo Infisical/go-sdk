@@ -10,7 +10,7 @@ import (
 func TestAWSAuthLogin(t *testing.T) {
 
 	client, err := infisical.NewInfisicalClient(infisical.Config{
-		SiteUrl: "http://localhost:8080",
+		// SiteUrl: "http://localhost:8080",
 	})
 
 	if err != nil {
