@@ -8,15 +8,15 @@ import (
 	"github.com/infisical/go-sdk/packages/util"
 )
 
-type Client struct {
+type InfisicalClient struct {
 	authMethod util.AuthMethod
 	httpClient *resty.Client
 	config     Config
 
-	Secrets SecretsInterface
+	secrets SecretsInterface
 }
 
-type ClientInterface interface {
+type InfisicalClientInterface interface {
 	Secrets() SecretsInterface
 }
 
@@ -97,7 +97,7 @@ func ValidateAuth(ao *Authentication) (util.AuthMethod, error) {
 	return "", fmt.Errorf("no authentication method is set")
 }
 
-func NewInfisicalClient(config Config) (*Client, error) {
+func NewInfisicalClient(config Config) (InfisicalClientInterface, error) {
 
 	if config.UserAgent == "" {
 		config.UserAgent = "infisical-go-sdk"
@@ -116,20 +116,24 @@ func NewInfisicalClient(config Config) (*Client, error) {
 		return nil, fmt.Errorf("error while instantiating Infisical client: %v", err)
 	}
 
-	client := &Client{
+	client := &InfisicalClient{
 		authMethod: authMethod,
 		config:     config,
 		httpClient: resty.New().SetHeader("User-Agent", config.UserAgent).SetBaseURL(config.SiteUrl),
 	}
-	err = client.authenticateHttpClient()
 
-	if err != nil {
-		return nil, fmt.Errorf("error while instantiating Infisical client: %v", err)
+	authErr := client.authenticateHttpClient()
+	if authErr != nil {
+		return nil, fmt.Errorf("error while instantiating Infisical client: %v", authErr)
 	}
 
-	client.Secrets = &Secrets{client: client}
-	// add other interfaces here
+	// add interfaces here
+	client.secrets = &Secrets{client: client}
 
 	return client, nil
 
+}
+
+func (c *InfisicalClient) Secrets() SecretsInterface {
+	return c.secrets
 }
