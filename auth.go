@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -265,7 +264,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 12\n")
 
-	bodyBytes, err := ioutil.ReadAll(req.Body)
+	// bodyBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return "", err
 	}
@@ -278,7 +277,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	iamRequestData := AwsIamRequestData{
 		HTTPRequestMethod: req.Method,
-		IamRequestBody:    base64.StdEncoding.EncodeToString(bodyBytes),
+		IamRequestBody:    base64.StdEncoding.EncodeToString([]byte(iamRequestBody)),
 		IamRequestHeaders: base64.StdEncoding.EncodeToString(jsonStringHeaders),
 		IdentityId:        identityId,
 	}
