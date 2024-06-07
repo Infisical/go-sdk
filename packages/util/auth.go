@@ -82,7 +82,7 @@ func GetAwsEC2IdentityDocumentRegion(timeout int) (string, error) {
 
 	res, err := httpClient.R().
 		SetHeader("X-aws-ec2-metadata-token-ttl-seconds", "21600").
-		Get(AWS_EC2_METADATA_TOKEN_URL)
+		Put(AWS_EC2_METADATA_TOKEN_URL)
 
 	if err != nil {
 		return "", err
