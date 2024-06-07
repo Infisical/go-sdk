@@ -99,6 +99,7 @@ func GetAwsEC2IdentityDocumentRegion(timeout int) (string, error) {
 	res, err = httpClient.R().
 		SetResult(&identityDocument).
 		SetHeader("X-aws-ec2-metadata-token", metadataToken).
+		SetHeader("Accept", "application/json").
 		Get(AWS_EC2_INSTANCE_IDENTITY_DOCUMENT_URL)
 
 	if err != nil {
