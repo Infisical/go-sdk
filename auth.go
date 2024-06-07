@@ -260,6 +260,8 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		return "", fmt.Errorf("error signing request: %v", err)
 	}
 
+	fmt.Printf("New request URL: %v\n", req.URL.String())
+
 	fmt.Printf("Test: 10\n")
 
 	var realHeaders map[string]string = make(map[string]string)
