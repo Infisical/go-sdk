@@ -8,14 +8,22 @@ import (
 	"github.com/infisical/go-sdk/packages/util"
 )
 
-type ListSecretsOptions = api.ListSecretsRequest
+type ListSecretsOptions = api.ListSecretsV3RawRequest
+type RetrieveSecretOptions = api.RetrieveSecretV3RawRequest
+type UpdateSecretOptions = api.UpdateSecretV3RawRequest
+type CreateSecretOptions = api.CreateSecretV3RawRequest
+type DeleteSecretOptions = api.DeleteSecretV3RawRequest
 
 type SecretsInterface interface {
 	List(options ListSecretsOptions) ([]models.Secret, error)
+	Retrieve(options RetrieveSecretOptions) (models.Secret, error)
+	Update(options UpdateSecretOptions) (models.Secret, error)
+	Create(options CreateSecretOptions) (models.Secret, error)
+	Delete(options DeleteSecretOptions) (models.Secret, error)
 }
 
 type Secrets struct {
-	client *Client
+	client *InfisicalClient
 }
 
 func (s *Secrets) List(options ListSecretsOptions) ([]models.Secret, error) {
@@ -56,6 +64,46 @@ func (s *Secrets) List(options ListSecretsOptions) ([]models.Secret, error) {
 	return secrets, nil
 }
 
-func NewSecrets(client *Client) SecretsInterface {
+func (s *Secrets) Retrieve(options RetrieveSecretOptions) (models.Secret, error) {
+	res, err := api.CallRetrieveSecretV3(s.client.httpClient, options)
+
+	if err != nil {
+		return models.Secret{}, err
+	}
+
+	return res.Secret, nil
+}
+
+func (s *Secrets) Update(options UpdateSecretOptions) (models.Secret, error) {
+	res, err := api.CallUpdateSecretV3(s.client.httpClient, options)
+
+	if err != nil {
+		return models.Secret{}, err
+	}
+
+	return res.Secret, nil
+}
+
+func (s *Secrets) Create(options CreateSecretOptions) (models.Secret, error) {
+	res, err := api.CallCreateSecretV3(s.client.httpClient, options)
+
+	if err != nil {
+		return models.Secret{}, err
+	}
+
+	return res.Secret, nil
+}
+
+func (s *Secrets) Delete(options DeleteSecretOptions) (models.Secret, error) {
+	res, err := api.CallDeleteSecretV3(s.client.httpClient, options)
+
+	if err != nil {
+		return models.Secret{}, err
+	}
+
+	return res.Secret, nil
+}
+
+func NewSecrets(client *InfisicalClient) SecretsInterface {
 	return &Secrets{client: client}
 }
