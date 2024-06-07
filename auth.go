@@ -226,7 +226,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 6\n")
 
-	req, err := http.NewRequest("POST", iamRequestURL, strings.NewReader(iamRequestBody))
+	req, err := http.NewRequest(http.MethodPost, iamRequestURL, strings.NewReader(iamRequestBody))
 	if err != nil {
 		return "", fmt.Errorf("error creating HTTP request: %v", err)
 	}
@@ -235,6 +235,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("X-Amz-Date", time.Now().UTC().Format("20060102T150405Z"))
+	req.Header.Add("Host", fmt.Sprintf("sts.%s.amazonaws.com", awsRegion))
 
 	fmt.Printf("Test: 8\n")
 
@@ -257,12 +258,12 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	for name, values := range req.Header {
 		fmt.Printf("Header: %v has value: %v\n\n", name, values)
-		realHeaders[name] = values[0]
+		realHeaders[strings.ToLower(name)] = values[0]
 	}
 
 	for name, values := range headers {
 		fmt.Printf("Header: %v has value: %v\n\n", name, values)
-		realHeaders[name] = values[0]
+		realHeaders[strings.ToLower(name)] = values[0]
 	}
 
 	// convert the headers to a json marshalled string
