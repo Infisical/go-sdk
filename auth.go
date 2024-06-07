@@ -255,7 +255,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	headers, err := v4.NewSigner(credentials, func(s *v4.Signer) {
 		s.DisableHeaderHoisting = true
 		s.Debug = aws.LogDebug
-	}).Sign(req, nil, "sts", awsRegion, epochTime())
+	}).Sign(req, nil, "sts", awsRegion, currentTime)
 	if err != nil {
 		return "", fmt.Errorf("error signing request: %v", err)
 	}
