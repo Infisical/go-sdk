@@ -48,6 +48,7 @@ func NewInfisicalClient(config Config) (InfisicalClientInterface, error) {
 
 	// add interfaces here
 	client.secrets = &Secrets{client: client}
+	client.auth = &Auth{client: client}
 
 	return client, nil
 
