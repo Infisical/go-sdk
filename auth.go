@@ -287,7 +287,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		Post("/v1/auth/aws-auth/login")
 
 	fmt.Printf("Response status code: %v\n", res.StatusCode())
-	fmt.Printf("Response body: %v\n", res.Body())
+	fmt.Printf("Response body: %v\n", res.String())
 
 	fmt.Printf("Test: 15\n")
 
