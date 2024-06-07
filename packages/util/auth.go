@@ -94,10 +94,7 @@ func GetAwsEC2IdentityDocumentRegion(timeout int) (string, error) {
 
 	metadataToken := res.String()
 
-	var identityDocument AwsIdentityDocument
-
 	res, err = httpClient.R().
-		SetResult(&identityDocument).
 		SetHeader("X-aws-ec2-metadata-token", metadataToken).
 		SetHeader("Accept", "application/json").
 		Get(AWS_EC2_INSTANCE_IDENTITY_DOCUMENT_URL)
@@ -106,13 +103,20 @@ func GetAwsEC2IdentityDocumentRegion(timeout int) (string, error) {
 		return "", err
 	}
 
-	fmt.Printf("RES BODY: %s\n\n\n\n\n", res.String())
-
 	if res.IsError() {
 		return "", fmt.Errorf("GetAwsEC2IdentityDocumentRegion: Unsuccessful response [%v %v] [status-code=%v] [Error: %s]", res.Request.Method, res.Request.URL, res.StatusCode(), TryParseErrorBody(res))
 	}
 
-	fmt.Printf("THE REGION IS %s\n\n\n\n", identityDocument)
+	// For some reason using .SetResult(&AwsIdentityDocument{}) doesn't work and just results in an empty object. This works though..
+	var identityDocument AwsIdentityDocument
+	err = json.Unmarshal(res.Body(), &identityDocument)
+	if err != nil {
+		fmt.Printf("JSON unmarshal error: %v\n", err)
+		return "", err
+	}
+
+	fmt.Printf("THE REGION IS %s", identityDocument.Region)
+	fmt.Printf("THE REGION IS %s", identityDocument.Region)
 	fmt.Printf("THE REGION IS %s", identityDocument.Region)
 	fmt.Printf("THE REGION IS %s", identityDocument.Region)
 	fmt.Printf("THE REGION IS %s", identityDocument.Region)
