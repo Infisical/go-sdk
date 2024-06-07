@@ -19,7 +19,7 @@ const (
 
 	// Kubernetes auth:
 	INFISICAL_KUBERNETES_IDENTITY_ID_ENV_NAME                = "INFISICAL_KUBERNETES_IDENTITY_ID"
-	INFISICAL_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH_ENV_NAME = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	INFISICAL_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH_ENV_NAME = "INFISICAL_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH"
 
 	// Access token:
 	INFISICAL_ACCESS_TOKEN_ENV_NAME = "INFISICAL_ACCESS_TOKEN"
@@ -46,5 +46,6 @@ const (
 
 // General:
 const (
-	DEFAULT_INFISICAL_API_URL = "https://app.infisical.com/api"
+	DEFAULT_INFISICAL_API_URL                     = "https://app.infisical.com/api"
+	DEFAULT_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
