@@ -7,7 +7,7 @@ import (
 	infisical "github.com/infisical/go-sdk"
 )
 
-func TestKubernetesAuthLogin(t *testing.T) {
+func TestAWSAuthLogin(t *testing.T) {
 
 	client, err := infisical.NewInfisicalClient(infisical.Config{
 		SiteUrl: "http://localhost:8080",
@@ -20,7 +20,7 @@ func TestKubernetesAuthLogin(t *testing.T) {
 	accessToken, err := client.Auth().AwsIamAuthLogin("TEST")
 
 	if err != nil {
-		t.Fatalf("Failed to login: %v", err)
+		panic(err)
 	}
 
 	fmt.Println(accessToken)
