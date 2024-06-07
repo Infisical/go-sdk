@@ -256,6 +256,11 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	// convert the headers to a json marshalled string
 	jsonStringHeaders, err := json.Marshal(headers)
 
+	for name, values := range headers {
+		fmt.Printf("Header: %v\n\n", name)
+
+	}
+
 	fmt.Printf("Test: 11\n")
 
 	if err != nil {
