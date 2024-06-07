@@ -25,6 +25,8 @@ type KubernetesAuthLoginOptions struct {
 	ServiceAccountTokenPath string
 }
 
+func epochTime() time.Time { return time.Unix(0, 0) }
+
 type AuthInterface interface {
 	SetAccessToken(accessToken string)
 	UniversalAuthLogin(clientID string, clientSecret string) (accessToken string, err error)
@@ -250,7 +252,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 9\n")
 
-	headers, err := v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, currentTime)
+	headers, err := v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, epochTime())
 	if err != nil {
 		return "", fmt.Errorf("error signing request: %v", err)
 	}
