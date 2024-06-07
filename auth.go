@@ -246,7 +246,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 9\n")
 
-	_, err = v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, time.Now())
+	headers, err := v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, time.Now())
 	if err != nil {
 		return "", fmt.Errorf("error signing request: %v", err)
 	}
@@ -254,7 +254,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	fmt.Printf("Test: 10\n")
 
 	// convert the headers to a json marshalled string
-	jsonStringHeaders, err := json.Marshal(req.Header)
+	jsonStringHeaders, err := json.Marshal(headers)
 
 	fmt.Printf("Test: 11\n")
 
