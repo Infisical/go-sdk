@@ -257,7 +257,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	jsonStringHeaders, err := json.Marshal(headers)
 
 	for name, values := range headers {
-		fmt.Printf("Header: %v\n\n", name)
+		fmt.Printf("Header: %v has value: %v\n\n", name, values)
 
 	}
 
