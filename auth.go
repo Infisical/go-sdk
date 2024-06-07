@@ -192,10 +192,14 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		return "", regionErr
 	}
 
+	fmt.Printf("Test: 2\n")
+
 	awsCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(awsRegion))
 	if err != nil {
 		return "", fmt.Errorf("unable to load SDK config, %v", err)
 	}
+
+	fmt.Printf("Test: 3\n")
 
 	stsClient := sts.NewFromConfig(awsCfg)
 
@@ -206,27 +210,34 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		return "", fmt.Errorf("unable to get caller identity, %v", err)
 	}
 
-	stsSvc := sts.NewFromConfig(awsCfg)
-	creds, e := stsSvc.Options().Credentials.Retrieve(context.TODO())
+	fmt.Printf("Test: 4\n")
 
-	if e != nil {
-		return "", fmt.Errorf("failed to retrieve credentials, %v", e)
-	}
+	stsSvc := sts.NewFromConfig(awsCfg)
+	creds, err := stsSvc.Options().Credentials.Retrieve(context.TODO())
+
+	fmt.Printf("Test: 5\n")
 
 	if err != nil {
-		return "", fmt.Errorf("failed to get caller identity, %v", err)
+		return "", fmt.Errorf("failed to retrieve credentials, %v", err)
 	}
 
 	// Prepare request for signing
 	iamRequestURL := fmt.Sprintf("https://sts.%s.amazonaws.com/", awsRegion)
 	iamRequestBody := "Action=GetCallerIdentity&Version=2011-06-15"
 
+	fmt.Printf("Test: 6\n")
+
 	req, err := http.NewRequest("POST", iamRequestURL, strings.NewReader(iamRequestBody))
 	if err != nil {
 		return "", fmt.Errorf("error creating HTTP request: %v", err)
 	}
+
+	fmt.Printf("Test: 7\n")
+
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("X-Amz-Date", time.Now().UTC().Format("20060102T150405Z"))
+
+	fmt.Printf("Test: 8\n")
 
 	credentials := credentials.NewCredentials(&credentials.StaticProvider{Value: credentials.Value{
 		AccessKeyID:     creds.AccessKeyID,
@@ -234,23 +245,36 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		SessionToken:    creds.SessionToken,
 	}})
 
+	fmt.Printf("Test: 9\n")
+
 	_, err = v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, time.Now())
 	if err != nil {
 		return "", fmt.Errorf("error signing request: %v", err)
 	}
 
+	fmt.Printf("Test: 10\n")
+
 	// convert the headers to a json marshalled string
 	jsonStringHeaders, err := json.Marshal(req.Header)
+
+	fmt.Printf("Test: 11\n")
 
 	if err != nil {
 		return "", fmt.Errorf("error marshalling headers: %v", err)
 	}
 
+	fmt.Printf("Test: 12\n")
+
 	bodyBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return "", err
 	}
+
+	fmt.Printf("Test: 13\n")
+
 	defer req.Body.Close()
+
+	fmt.Printf("Test: 14\n")
 
 	iamRequestData := AwsIamRequestData{
 		HTTPRequestMethod: req.Method,
@@ -258,6 +282,8 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		IamRequestHeaders: base64.StdEncoding.EncodeToString(jsonStringHeaders),
 		IdentityId:        identityId,
 	}
+
+	fmt.Printf("Test: 15\n")
 
 	fmt.Printf("iamRequestData: %v\n", iamRequestData)
 
