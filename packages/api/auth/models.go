@@ -12,6 +12,16 @@ type KubernetesAuthLoginRequest struct {
 	JWT        string `json:"jwt"`
 }
 
+type AzureAuthLoginRequest struct {
+	IdentityID string `json:"identityId"`
+	JWT        string `json:"jwt"`
+}
+
+type GCPAuthLoginRequest struct {
+	IdentityID string `json:"identityId"`
+	JWT        string `json:"jwt"`
+}
+
 type GenericAuthLoginResponse struct {
 	AccessToken string `json:"accessToken"`
 }
