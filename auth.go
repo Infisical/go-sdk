@@ -265,13 +265,13 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	fmt.Printf("Test: 12\n")
 
 	// bodyBytes, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		return "", err
-	}
+	// if err != nil {
+	// 	return "", err
+	// }
 
 	fmt.Printf("Test: 13\n")
 
-	defer req.Body.Close()
+	// defer req.Body.Close()
 
 	fmt.Printf("Test: 14\n")
 
