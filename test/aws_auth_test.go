@@ -17,7 +17,7 @@ func TestAWSAuthLogin(t *testing.T) {
 		t.Fatalf("Failed to create Infisical client: %v", err)
 	}
 
-	accessToken, err := client.Auth().AwsIamAuthLogin("TEST")
+	accessToken, err := client.Auth().AwsIamAuthLogin("0e007fbe-7954-48f9-b888-6665eec088e7") // test ID
 
 	if err != nil {
 		panic(err)

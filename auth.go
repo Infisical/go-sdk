@@ -282,6 +282,12 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		IdentityId:        identityId,
 	}
 
+	res, _ := a.client.httpClient.R().
+		SetBody(iamRequestData).
+		Post("/v1/auth/aws-auth/login")
+
+	fmt.Printf("Request body response: %v\n", res.String())
+
 	fmt.Printf("Test: 15\n")
 
 	fmt.Printf("iamRequestData: %v\n", iamRequestData)
