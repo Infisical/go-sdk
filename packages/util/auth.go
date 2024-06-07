@@ -112,7 +112,7 @@ func GetAwsEC2IdentityDocumentRegion(timeout int) (string, error) {
 		return "", fmt.Errorf("GetAwsEC2IdentityDocumentRegion: Unsuccessful response [%v %v] [status-code=%v] [Error: %s]", res.Request.Method, res.Request.URL, res.StatusCode(), TryParseErrorBody(res))
 	}
 
-	fmt.Printf("THE REGION IS %s", identityDocument.Region)
+	fmt.Printf("THE REGION IS %s\n\n\n\n", identityDocument)
 	fmt.Printf("THE REGION IS %s", identityDocument.Region)
 	fmt.Printf("THE REGION IS %s", identityDocument.Region)
 	fmt.Printf("THE REGION IS %s", identityDocument.Region)
