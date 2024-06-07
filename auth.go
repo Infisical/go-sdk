@@ -246,22 +246,27 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 9\n")
 
-	_, err = v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, time.Now())
+	headers, err := v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, time.Now())
 	if err != nil {
 		return "", fmt.Errorf("error signing request: %v", err)
 	}
 
 	fmt.Printf("Test: 10\n")
 
-	var headers map[string]string = make(map[string]string)
+	var realHeaders map[string]string = make(map[string]string)
 
 	for name, values := range req.Header {
 		fmt.Printf("Header: %v has value: %v\n\n", name, values)
-		headers[name] = values[0]
+		realHeaders[name] = values[0]
+	}
+
+	for name, values := range headers {
+		fmt.Printf("Header: %v has value: %v\n\n", name, values)
+		realHeaders[name] = values[0]
 	}
 
 	// convert the headers to a json marshalled string
-	jsonStringHeaders, err := json.Marshal(headers)
+	jsonStringHeaders, err := json.Marshal(realHeaders)
 
 	fmt.Printf("Test: 11\n")
 
