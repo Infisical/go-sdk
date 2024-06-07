@@ -12,6 +12,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	api "github.com/infisical/go-sdk/packages/api/auth"
@@ -238,7 +239,6 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	currentTime := time.Now().UTC()
 
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Add("X-Amz-Date", currentTime.Format("20060102T150405Z"))
 	req.Header.Add("Host", fmt.Sprintf("sts.%s.amazonaws.com", awsRegion))
 
@@ -252,7 +252,10 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 9\n")
 
-	headers, err := v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, epochTime())
+	headers, err := v4.NewSigner(credentials, func(s *v4.Signer) {
+		s.DisableHeaderHoisting = true
+		s.Debug = aws.LogDebug
+	}).Sign(req, nil, "sts", awsRegion, epochTime())
 	if err != nil {
 		return "", fmt.Errorf("error signing request: %v", err)
 	}
