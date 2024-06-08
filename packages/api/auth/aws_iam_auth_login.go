@@ -12,7 +12,7 @@ func CallAWSIamAuthLogin(httpClient *resty.Client, request AwsIamAuthLoginReques
 	response, err := httpClient.R().
 		SetResult(&responseData).
 		SetBody(request).
-		Post("/v1/auth/aws-iam/login")
+		Post("/v1/auth/aws-auth/login")
 
 	if err != nil {
 		return "", fmt.Errorf("CallAWSIamAuthLogin: Unable to complete api request [err=%s]", err)
