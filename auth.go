@@ -241,7 +241,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	signer := v4.NewSigner()
 
-	err = signer.SignHTTP(context.TODO(), credentials, req, payloadHash, "sts", awsRegion, currentTime)
+	err = signer.SignHTTP(context.TODO(), credentials, req, payloadHash, "sts", awsRegion, time.Now())
 
 	if err != nil {
 		return "", fmt.Errorf("error signing request: %v", err)
@@ -254,8 +254,12 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 			continue
 		}
 		fmt.Printf("Header: %v has value: %v\n\n", name, values)
-		realHeaders[strings.ToLower(name)] = values[0]
+		realHeaders[name] = values[0]
 	}
+
+	realHeaders["Host"] = fmt.Sprintf("sts.%s.amazonaws.com", awsRegion)
+	realHeaders["Content-Type"] = "application/x-www-form-urlencoded; charset=utf-8"
+	realHeaders["Content-Length"] = fmt.Sprintf("%d", len(iamRequestBody))
 
 	// convert the headers to a json marshalled string
 	jsonStringHeaders, err := json.Marshal(realHeaders)
