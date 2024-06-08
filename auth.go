@@ -233,7 +233,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	currentTime := time.Now().UTC()
 
 	req.Header.Add("X-Amz-Date", currentTime.Format("20060102T150405Z"))
-	req.Header.Add("Host", fmt.Sprintf("sts.%s.amazonaws.com", awsRegion))
+	// req.Header.Add("Host", fmt.Sprintf("sts.%s.amazonaws.com", awsRegion))
 
 	fmt.Printf("Test: 8\n")
 
