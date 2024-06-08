@@ -255,9 +255,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 9\n")
 
-	v4.NewSigner(credentials, func(s *v4.Signer) {
-		s.UnsignedPayload = true
-	}).Sign(req, nil, "sts", awsRegion, currentTime)
+	v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, currentTime)
 
 	fmt.Printf("New request URL: %v\n", req.URL.String())
 
