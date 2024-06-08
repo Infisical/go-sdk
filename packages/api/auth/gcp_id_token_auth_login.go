@@ -15,11 +15,11 @@ func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (ac
 		Post("/v1/auth/gcp-auth/login")
 
 	if err != nil {
-		return "", fmt.Errorf("CallGCPIdTokenAuthLogin: Unable to complete api request [err=%s]", err)
+		return "", fmt.Errorf("CallGCPAuthLogin: Unable to complete api request [err=%s]", err)
 	}
 
 	if response.IsError() {
-		return "", fmt.Errorf("CallGCPIdTokenAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
+		return "", fmt.Errorf("CallGCPAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
 	}
 
 	return responseData.AccessToken, nil

@@ -17,6 +17,13 @@ type AzureAuthLoginRequest struct {
 	JWT        string `json:"jwt"`
 }
 
+type AwsIamAuthLoginRequest struct {
+	HTTPRequestMethod string `json:"iamHttpRequestMethod"`
+	IamRequestBody    string `json:"iamRequestBody"`
+	IamRequestHeaders string `json:"iamRequestHeaders"`
+	IdentityId        string `json:"identityId"`
+}
+
 type GCPAuthLoginRequest struct {
 	IdentityID string `json:"identityId"`
 	JWT        string `json:"jwt"`

@@ -15,11 +15,11 @@ func CallKubernetesAuthLogin(httpClient *resty.Client, request KubernetesAuthLog
 		Post("/v1/auth/kubernetes-auth/login")
 
 	if err != nil {
-		return "", fmt.Errorf("CallUniversalAuthLogin: Unable to complete api request [err=%s]", err)
+		return "", fmt.Errorf("CallKubernetesAuthLogin: Unable to complete api request [err=%s]", err)
 	}
 
 	if response.IsError() {
-		return "", fmt.Errorf("CallUniversalAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
+		return "", fmt.Errorf("CallKubernetesAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
 	}
 
 	return responseData.AccessToken, nil

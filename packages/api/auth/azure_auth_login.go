@@ -15,7 +15,7 @@ func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest)
 		Post("/v1/auth/azure-auth/login")
 
 	if err != nil {
-		return "", fmt.Errorf("CallUniversalAuthLogin: Unable to complete api request [err=%s]", err)
+		return "", fmt.Errorf("CallAzureAuthLogin: Unable to complete api request [err=%s]", err)
 	}
 
 	if response.IsError() {

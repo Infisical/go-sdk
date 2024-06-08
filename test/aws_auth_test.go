@@ -23,5 +23,5 @@ func TestAWSAuthLogin(t *testing.T) {
 		panic(err)
 	}
 
-	fmt.Println(accessToken)
+	fmt.Println("Obtained access token: ", accessToken)
 }
