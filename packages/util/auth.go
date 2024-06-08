@@ -115,8 +115,6 @@ func GetAwsEC2IdentityDocumentRegion(timeout int) (string, error) {
 		return "", err
 	}
 
-	fmt.Printf("THE REGION IS %s", identityDocument.Region)
-
 	return identityDocument.Region, nil
 
 }
