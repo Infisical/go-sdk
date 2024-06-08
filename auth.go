@@ -10,11 +10,9 @@ import (
 	"strings"
 	"time"
 
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	api "github.com/infisical/go-sdk/packages/api/auth"
 	"github.com/infisical/go-sdk/packages/util"
 )
@@ -215,11 +213,6 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 4\n")
 
-	stsSvc := sts.NewFromConfig(awsCfg)
-	creds, err := stsSvc.Options().Credentials.Retrieve(context.TODO())
-
-	fmt.Printf("Test: 5\n")
-
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve credentials, %v", err)
 	}
@@ -244,20 +237,23 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 8\n")
 
-	credentials := credentials.NewCredentials(&credentials.StaticProvider{Value: credentials.Value{
-		AccessKeyID:     creds.AccessKeyID,
-		SecretAccessKey: creds.SecretAccessKey,
-		SessionToken:    creds.SessionToken,
-	}})
+	// credentials := credentials.NewCredentials(&credentials.StaticProvider{Value: credentials.Value{
+	// 	AccessKeyID:     creds.AccessKeyID,
+	// 	SecretAccessKey: creds.SecretAccessKey,
+	// 	SessionToken:    creds.SessionToken,
+	// }})
+
+	credentials, err := awsCfg.Credentials.Retrieve(context.Background())
+
+	if err != nil {
+		return "", fmt.Errorf("error retrieving credentials: %v", err)
+	}
 
 	fmt.Printf("Test: 9\n")
 
-	headers, err := v4.NewSigner(credentials, func(s *v4.Signer) {
-		// s.DisableHeaderHoisting = true
-		s.Debug = aws.LogDebug
-	}).Sign(req, nil, "sts", awsRegion, currentTime)
-	if err != nil {
-		return "", fmt.Errorf("error signing request: %v", err)
+	if err = v4.NewSigner().SignHTTP(context.Background(), credentials, req, "UNSIGNED-PAYLOAD", "sts", awsRegion, currentTime); err != nil {
+		fmt.Printf("Error signing request: %v", err)
+		return "", err
 	}
 
 	fmt.Printf("New request URL: %v\n", req.URL.String())
@@ -267,11 +263,6 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	var realHeaders map[string]string = make(map[string]string)
 
 	for name, values := range req.Header {
-		fmt.Printf("Header: %v has value: %v\n\n", name, values)
-		realHeaders[strings.ToLower(name)] = values[0]
-	}
-
-	for name, values := range headers {
 		fmt.Printf("Header: %v has value: %v\n\n", name, values)
 		realHeaders[strings.ToLower(name)] = values[0]
 	}
