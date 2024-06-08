@@ -146,13 +146,6 @@ func (a *Auth) GcpIdTokenAuthLogin(identityID string) (accessToken string, err e
 	return accessToken, nil
 }
 
-type AwsIamRequestData struct {
-	HTTPRequestMethod string `json:"iamHttpRequestMethod"`
-	IamRequestBody    string `json:"iamRequestBody"`
-	IamRequestHeaders string `json:"iamRequestHeaders"`
-	IdentityId        string `json:"identityId"`
-}
-
 func (a *Auth) GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath string) (accessToken string, err error) {
 	if identityID == "" {
 		identityID = os.Getenv(util.INFISICAL_GCP_AUTH_IDENTITY_ID_ENV_NAME)
@@ -199,8 +192,6 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	stsClient := sts.NewFromConfig(awsCfg)
 
-	// You can use the stsClient to perform operations if needed
-	// For example, calling GetCallerIdentity to validate credentials
 	_, err = stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
 
 	if err != nil {
@@ -219,15 +210,6 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	currentTime := time.Now().UTC()
 
 	req.Header.Add("X-Amz-Date", currentTime.Format("20060102T150405Z"))
-	// req.Header.Add("Host", fmt.Sprintf("sts.%s.amazonaws.com", awsRegion))
-
-	// creds, err := awsCfg.Credentials.Retrieve(context.Background())
-
-	// credentials := credentials.NewCredentials(&credentials.StaticProvider{Value: credentials.Value{
-	// 	AccessKeyID:     creds.AccessKeyID,
-	// 	SecretAccessKey: creds.SecretAccessKey,
-	// 	SessionToken:    creds.SessionToken,
-	// }})
 
 	credentials, err := awsCfg.Credentials.Retrieve(context.TODO())
 
@@ -235,12 +217,11 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		return "", fmt.Errorf("error retrieving credentials: %v", err)
 	}
 
-	hasher := sha256.New()
-	hasher.Write([]byte(iamRequestBody))
-	payloadHash := fmt.Sprintf("%x", hasher.Sum(nil))
+	hashGenerator := sha256.New()
+	hashGenerator.Write([]byte(iamRequestBody))
+	payloadHash := fmt.Sprintf("%x", hashGenerator.Sum(nil))
 
 	signer := v4.NewSigner()
-
 	err = signer.SignHTTP(context.TODO(), credentials, req, payloadHash, "sts", awsRegion, time.Now())
 
 	if err != nil {
@@ -253,10 +234,8 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		if strings.ToLower(name) == "content-length" {
 			continue
 		}
-		fmt.Printf("Header: %v has value: %v\n\n", name, values)
 		realHeaders[name] = values[0]
 	}
-
 	realHeaders["Host"] = fmt.Sprintf("sts.%s.amazonaws.com", awsRegion)
 	realHeaders["Content-Type"] = "application/x-www-form-urlencoded; charset=utf-8"
 	realHeaders["Content-Length"] = fmt.Sprintf("%d", len(iamRequestBody))
@@ -264,34 +243,23 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	// convert the headers to a json marshalled string
 	jsonStringHeaders, err := json.Marshal(realHeaders)
 
-	fmt.Printf("Test: 11\n")
-
 	if err != nil {
 		return "", fmt.Errorf("error marshalling headers: %v", err)
 	}
 
-	fmt.Printf("Test: 12\n")
-
-	iamRequestData := AwsIamRequestData{
+	accessToken, tokenErr := api.CallAWSIamAuthLogin(a.client.httpClient, api.AwsIamAuthLoginRequest{
 		HTTPRequestMethod: req.Method,
 		// Encoding is intended, we decode it on severside, and I know everything happening on the server is being done correctly. So it's something broken in this code somewhere.
 		IamRequestBody:    base64.StdEncoding.EncodeToString([]byte(iamRequestBody)),
 		IamRequestHeaders: base64.StdEncoding.EncodeToString(jsonStringHeaders),
 		IdentityId:        identityId,
+	})
+
+	if tokenErr != nil {
+		return "", tokenErr
 	}
 
-	res, _ := a.client.httpClient.R().
-		SetBody(iamRequestData).
-		Post("/v1/auth/aws-auth/login")
-
-	fmt.Printf("Response status code: %v\n", res.StatusCode())
-	fmt.Printf("Response body: %v\n", res.String())
-
-	fmt.Printf("Test: 15\n")
-
-	fmt.Printf("iamRequestData: %v\n", iamRequestData)
-
-	return "", nil
+	return accessToken, nil
 }
 
 func NewAuth(client *InfisicalClient) AuthInterface {
