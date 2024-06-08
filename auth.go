@@ -2,6 +2,7 @@ package infisical
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -10,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	api "github.com/infisical/go-sdk/packages/api/auth"
 	"github.com/infisical/go-sdk/packages/util"
+
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 type UniversalAuthLoginOptions = api.UniversalAuthLoginRequest
@@ -181,8 +182,6 @@ func (a *Auth) GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath stri
 
 func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error) {
 
-	fmt.Printf("Test: 1\n")
-
 	if identityId == "" {
 		identityId = os.Getenv(util.INFISICAL_AWS_IAM_AUTH_IDENTITY_ID_ENV_NAME)
 	}
@@ -193,29 +192,16 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		return "", regionErr
 	}
 
-	fmt.Printf("Test: 2\n")
-
 	awsCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(awsRegion))
 	if err != nil {
 		return "", fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
-	fmt.Printf("Test: 3\n")
-
 	stsClient := sts.NewFromConfig(awsCfg)
-
-	stsSvc := sts.NewFromConfig(awsCfg)
-	creds, err := stsSvc.Options().Credentials.Retrieve(context.TODO())
 
 	// You can use the stsClient to perform operations if needed
 	// For example, calling GetCallerIdentity to validate credentials
 	_, err = stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
-
-	if err != nil {
-		return "", fmt.Errorf("unable to get caller identity, %v", err)
-	}
-
-	fmt.Printf("Test: 4\n")
 
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve credentials, %v", err)
@@ -225,41 +211,41 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	iamRequestURL := fmt.Sprintf("https://sts.%s.amazonaws.com/", awsRegion)
 	iamRequestBody := "Action=GetCallerIdentity&Version=2011-06-15"
 
-	fmt.Printf("Test: 6\n")
-
 	req, err := http.NewRequest(http.MethodPost, iamRequestURL, strings.NewReader(iamRequestBody))
 	if err != nil {
 		return "", fmt.Errorf("error creating HTTP request: %v", err)
 	}
-
-	fmt.Printf("Test: 7\n")
 
 	currentTime := time.Now().UTC()
 
 	req.Header.Add("X-Amz-Date", currentTime.Format("20060102T150405Z"))
 	// req.Header.Add("Host", fmt.Sprintf("sts.%s.amazonaws.com", awsRegion))
 
-	fmt.Printf("Test: 8\n")
+	// creds, err := awsCfg.Credentials.Retrieve(context.Background())
 
-	credentials := credentials.NewCredentials(&credentials.StaticProvider{Value: credentials.Value{
-		AccessKeyID:     creds.AccessKeyID,
-		SecretAccessKey: creds.SecretAccessKey,
-		SessionToken:    creds.SessionToken,
-	}})
+	// credentials := credentials.NewCredentials(&credentials.StaticProvider{Value: credentials.Value{
+	// 	AccessKeyID:     creds.AccessKeyID,
+	// 	SecretAccessKey: creds.SecretAccessKey,
+	// 	SessionToken:    creds.SessionToken,
+	// }})
 
-	// credentials, err := awsCfg.Credentials.Retrieve(context.Background())
+	credentials, err := awsCfg.Credentials.Retrieve(context.TODO())
 
 	if err != nil {
 		return "", fmt.Errorf("error retrieving credentials: %v", err)
 	}
 
-	fmt.Printf("Test: 9\n")
+	hasher := sha256.New()
+	hasher.Write([]byte(iamRequestBody))
+	payloadHash := fmt.Sprintf("%x", hasher.Sum(nil))
 
-	v4.NewSigner(credentials).Sign(req, nil, "sts", awsRegion, currentTime)
+	signer := v4.NewSigner()
 
-	fmt.Printf("New request URL: %v\n", req.URL.String())
+	err = signer.SignHTTP(context.TODO(), credentials, req, payloadHash, "sts", awsRegion, currentTime)
 
-	fmt.Printf("Test: 10\n")
+	if err != nil {
+		return "", fmt.Errorf("error signing request: %v", err)
+	}
 
 	var realHeaders map[string]string = make(map[string]string)
 
@@ -282,19 +268,9 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 12\n")
 
-	// bodyBytes, err := ioutil.ReadAll(req.Body)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	fmt.Printf("Test: 13\n")
-
-	// defer req.Body.Close()
-
-	fmt.Printf("Test: 14\n")
-
 	iamRequestData := AwsIamRequestData{
 		HTTPRequestMethod: req.Method,
+		// Encoding is intended, we decode it on severside, and I know everything happening on the server is being done correctly. So it's something broken in this code somewhere.
 		IamRequestBody:    base64.StdEncoding.EncodeToString([]byte(iamRequestBody)),
 		IamRequestHeaders: base64.StdEncoding.EncodeToString(jsonStringHeaders),
 		IdentityId:        identityId,
