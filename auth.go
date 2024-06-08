@@ -16,7 +16,6 @@ import (
 
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 type UniversalAuthLoginOptions = api.UniversalAuthLoginRequest
@@ -179,23 +178,14 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 		identityId = os.Getenv(util.INFISICAL_AWS_IAM_AUTH_IDENTITY_ID_ENV_NAME)
 	}
 
-	awsRegion, regionErr := util.GetAwsRegion()
-
-	if regionErr != nil {
-		return "", regionErr
+	awsRegion, err := util.GetAwsRegion()
+	if err != nil {
+		return "", err
 	}
 
 	awsCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(awsRegion))
 	if err != nil {
 		return "", fmt.Errorf("unable to load SDK config, %v", err)
-	}
-
-	stsClient := sts.NewFromConfig(awsCfg)
-
-	_, err = stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
-
-	if err != nil {
-		return "", fmt.Errorf("failed to retrieve credentials, %v", err)
 	}
 
 	// Prepare request for signing
@@ -208,11 +198,9 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	}
 
 	currentTime := time.Now().UTC()
-
 	req.Header.Add("X-Amz-Date", currentTime.Format("20060102T150405Z"))
 
 	credentials, err := awsCfg.Credentials.Retrieve(context.TODO())
-
 	if err != nil {
 		return "", fmt.Errorf("error retrieving credentials: %v", err)
 	}
@@ -229,7 +217,6 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	}
 
 	var realHeaders map[string]string = make(map[string]string)
-
 	for name, values := range req.Header {
 		if strings.ToLower(name) == "content-length" {
 			continue
