@@ -10,9 +10,10 @@ import (
 	"strings"
 	"time"
 
-	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	api "github.com/infisical/go-sdk/packages/api/auth"
 	"github.com/infisical/go-sdk/packages/util"
 )
@@ -24,7 +25,7 @@ type KubernetesAuthLoginOptions struct {
 	ServiceAccountTokenPath string
 }
 
-func epochTime() time.Time { return time.Unix(0, 0) }
+// func epochTime() time.Time { return time.Unix(0, 0) }
 
 type AuthInterface interface {
 	SetAccessToken(accessToken string)
@@ -203,6 +204,9 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	stsClient := sts.NewFromConfig(awsCfg)
 
+	stsSvc := sts.NewFromConfig(awsCfg)
+	creds, err := stsSvc.Options().Credentials.Retrieve(context.TODO())
+
 	// You can use the stsClient to perform operations if needed
 	// For example, calling GetCallerIdentity to validate credentials
 	_, err = stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
@@ -237,13 +241,13 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 8\n")
 
-	// credentials := credentials.NewCredentials(&credentials.StaticProvider{Value: credentials.Value{
-	// 	AccessKeyID:     creds.AccessKeyID,
-	// 	SecretAccessKey: creds.SecretAccessKey,
-	// 	SessionToken:    creds.SessionToken,
-	// }})
+	credentials := credentials.NewCredentials(&credentials.StaticProvider{Value: credentials.Value{
+		AccessKeyID:     creds.AccessKeyID,
+		SecretAccessKey: creds.SecretAccessKey,
+		SessionToken:    creds.SessionToken,
+	}})
 
-	credentials, err := awsCfg.Credentials.Retrieve(context.Background())
+	// credentials, err := awsCfg.Credentials.Retrieve(context.Background())
 
 	if err != nil {
 		return "", fmt.Errorf("error retrieving credentials: %v", err)
@@ -251,10 +255,9 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 
 	fmt.Printf("Test: 9\n")
 
-	if err = v4.NewSigner().SignHTTP(context.Background(), credentials, req, "UNSIGNED-PAYLOAD", "sts", awsRegion, currentTime); err != nil {
-		fmt.Printf("Error signing request: %v", err)
-		return "", err
-	}
+	v4.NewSigner(credentials, func(s *v4.Signer) {
+		s.UnsignedPayload = true
+	}).Sign(req, nil, "sts", awsRegion, currentTime)
 
 	fmt.Printf("New request URL: %v\n", req.URL.String())
 
@@ -263,6 +266,9 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (accessToken string, err error
 	var realHeaders map[string]string = make(map[string]string)
 
 	for name, values := range req.Header {
+		if strings.ToLower(name) == "content-length" {
+			continue
+		}
 		fmt.Printf("Header: %v has value: %v\n\n", name, values)
 		realHeaders[strings.ToLower(name)] = values[0]
 	}
