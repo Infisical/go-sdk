@@ -25,6 +25,12 @@ type Config struct {
 }
 
 func (c *InfisicalClient) setAccessToken(accessToken string, authMethod util.AuthMethod) {
+	// We check if the accessToken starts with "Bearer ", and if it does, we remove it from the accessToken
+	const bearerPrefix = "Bearer "
+	if len(accessToken) >= len(bearerPrefix) && accessToken[:len(bearerPrefix)] == bearerPrefix {
+		accessToken = accessToken[len(bearerPrefix):]
+	}
+
 	c.authMethod = authMethod
 	c.httpClient.SetAuthScheme("Bearer")
 	c.httpClient.SetAuthToken(accessToken)
