@@ -22,7 +22,7 @@ type InfisicalClientInterface interface {
 type Config struct {
 	SiteUrl   string
 	UserAgent string // optional, we set this when instantiating the client in the k8s operator / cli.
-}
+} //
 
 func (c *InfisicalClient) setAccessToken(accessToken string, authMethod util.AuthMethod) {
 	// We check if the accessToken starts with "Bearer ", and if it does, we remove it from the accessToken
