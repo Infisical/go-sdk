@@ -19,7 +19,7 @@ func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest)
 	}
 
 	if response.IsError() {
-		return "", fmt.Errorf("CallUniversalAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
+		return "", fmt.Errorf("CallAzureAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
 	}
 
 	return responseData.AccessToken, nil
