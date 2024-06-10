@@ -19,6 +19,7 @@ type InfisicalClientInterface interface {
 	Auth() AuthInterface
 }
 
+// test
 type Config struct {
 	SiteUrl   string
 	UserAgent string // optional, we set this when instantiating the client in the k8s operator / cli.
