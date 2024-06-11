@@ -37,20 +37,7 @@ func (c *InfisicalClient) setAccessToken(accessToken string, authMethod util.Aut
 	c.httpClient.SetAuthToken(accessToken)
 }
 
-func NewInfisicalClient(config Config) (InfisicalClientInterface, error) {
-
-	// if config.UserAgent == "" {
-	// 	config.UserAgent = "infisical-go-sdk"
-	// }
-	// if config.SiteUrl == "" {
-	// 	config.SiteUrl = util.DEFAULT_INFISICAL_API_URL
-	// }
-	// config.SiteUrl = util.AppendAPIEndpoint(config.SiteUrl)
-	// client := &InfisicalClient{
-	// 	config:     config,
-	// 	httpClient: resty.New().SetHeader("User-Agent", config.UserAgent).SetBaseURL(config.SiteUrl),
-	// }
-
+func NewInfisicalClient(config Config) InfisicalClientInterface {
 	client := &InfisicalClient{}
 
 	client.UpdateConfiguration(config) // set httpClient and config
@@ -59,7 +46,7 @@ func NewInfisicalClient(config Config) (InfisicalClientInterface, error) {
 	client.secrets = &Secrets{client: client}
 	client.auth = &Auth{client: client}
 
-	return client, nil
+	return client
 
 }
 
