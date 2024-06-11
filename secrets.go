@@ -61,7 +61,7 @@ func (s *Secrets) List(options ListSecretsOptions) ([]models.Secret, error) {
 
 	}
 
-	return secrets, nil
+	return util.SortSecretsByKeys(secrets), nil
 }
 
 func (s *Secrets) Retrieve(options RetrieveSecretOptions) (models.Secret, error) {

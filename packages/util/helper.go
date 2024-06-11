@@ -2,6 +2,7 @@ package util
 
 import (
 	"encoding/json"
+	"sort"
 	"strings"
 
 	"github.com/go-resty/resty/v2"
@@ -46,6 +47,14 @@ func ContainsSecret(secrets []models.Secret, key string) bool {
 		}
 	}
 	return false
+}
+
+// Helper function to sort the secrets by key so we can create a consistent output
+func SortSecretsByKeys(secrets []models.Secret) []models.Secret {
+	sort.Slice(secrets, func(i, j int) bool {
+		return secrets[i].SecretKey < secrets[j].SecretKey
+	})
+	return secrets
 }
 
 /*
