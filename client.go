@@ -15,6 +15,7 @@ type InfisicalClient struct {
 }
 
 type InfisicalClientInterface interface {
+	UpdateConfiguration(config Config)
 	Secrets() SecretsInterface
 	Auth() AuthInterface
 }
@@ -38,19 +39,21 @@ func (c *InfisicalClient) setAccessToken(accessToken string, authMethod util.Aut
 
 func NewInfisicalClient(config Config) (InfisicalClientInterface, error) {
 
-	if config.UserAgent == "" {
-		config.UserAgent = "infisical-go-sdk"
-	}
-	if config.SiteUrl == "" {
-		config.SiteUrl = util.DEFAULT_INFISICAL_API_URL
-	}
+	// if config.UserAgent == "" {
+	// 	config.UserAgent = "infisical-go-sdk"
+	// }
+	// if config.SiteUrl == "" {
+	// 	config.SiteUrl = util.DEFAULT_INFISICAL_API_URL
+	// }
+	// config.SiteUrl = util.AppendAPIEndpoint(config.SiteUrl)
+	// client := &InfisicalClient{
+	// 	config:     config,
+	// 	httpClient: resty.New().SetHeader("User-Agent", config.UserAgent).SetBaseURL(config.SiteUrl),
+	// }
 
-	config.SiteUrl = util.AppendAPIEndpoint(config.SiteUrl)
+	client := &InfisicalClient{}
 
-	client := &InfisicalClient{
-		config:     config,
-		httpClient: resty.New().SetHeader("User-Agent", config.UserAgent).SetBaseURL(config.SiteUrl),
-	}
+	client.UpdateConfiguration(config) // set httpClient and config
 
 	// add interfaces here
 	client.secrets = &Secrets{client: client}
@@ -58,6 +61,20 @@ func NewInfisicalClient(config Config) (InfisicalClientInterface, error) {
 
 	return client, nil
 
+}
+
+func (c *InfisicalClient) UpdateConfiguration(config Config) {
+
+	if config.UserAgent == "" {
+		config.UserAgent = "infisical-go-sdk"
+	}
+	if config.SiteUrl == "" {
+		config.SiteUrl = util.DEFAULT_INFISICAL_API_URL
+	}
+	config.SiteUrl = util.AppendAPIEndpoint(config.SiteUrl)
+
+	c.config = config
+	c.httpClient = resty.New().SetHeader("User-Agent", config.UserAgent).SetBaseURL(config.SiteUrl)
 }
 
 func (c *InfisicalClient) Secrets() SecretsInterface {
