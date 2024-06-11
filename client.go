@@ -61,7 +61,12 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 	config.SiteUrl = util.AppendAPIEndpoint(config.SiteUrl)
 
 	c.config = config
-	c.httpClient = resty.New().SetHeader("User-Agent", config.UserAgent).SetBaseURL(config.SiteUrl)
+
+	if c.httpClient == nil {
+		c.httpClient = resty.New().SetHeader("User-Agent", config.UserAgent).SetBaseURL(config.SiteUrl)
+	} else {
+		c.httpClient.SetHeader("User-Agent", config.UserAgent).SetBaseURL(config.SiteUrl)
+	}
 }
 
 func (c *InfisicalClient) Secrets() SecretsInterface {
