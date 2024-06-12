@@ -15,7 +15,7 @@ func CallUpdateFolderV1(httpClient *resty.Client, request UpdateFolderV1Request)
 		SetResult(&updateResponse).
 		SetBody(request)
 
-	res, err := req.Patch(fmt.Sprintf("/v1/folders/%s", request.folderID))
+	res, err := req.Patch(fmt.Sprintf("/v1/folders/%s", request.FolderID))
 
 	if err != nil {
 		return UpdateFolderV1Response{}, fmt.Errorf("CallUpdateFolderV1: Unable to complete api request [err=%s]", err)

@@ -13,10 +13,10 @@ func CallDeleteFolderV1(httpClient *resty.Client, request DeleteFolderV1Request)
 
 	// Either folderID or folderName must be provided
 	var folderIdOrName string
-	if request.folderID != "" {
-		folderIdOrName = request.folderID
-	} else if request.folderName != "" {
-		folderIdOrName = request.folderName
+	if request.FolderID != "" {
+		folderIdOrName = request.FolderID
+	} else if request.FolderName != "" {
+		folderIdOrName = request.FolderName
 	} else {
 		return DeleteFolderV1Response{}, fmt.Errorf("CallDeleteFolderV1: Either folderID or folderName must be provided")
 	}
