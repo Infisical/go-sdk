@@ -10,5 +10,5 @@ type Folder struct {
 	UpdatedAT  time.Time `json:"updatedAt"`
 	EnvId      string    `json:"envId"`
 	ParentID   string    `json:"parentId"`
-	IsReserver bool      `json:"isReserved"`
+	IsReserved bool      `json:"isReserved"`
 }

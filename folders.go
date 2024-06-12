@@ -28,8 +28,7 @@ func (f *Folders) List(options ListFoldersOptions) ([]models.Folder, error) {
 		return nil, err
 	}
 
-	folders := append([]models.Folder(nil), res.Folders...) // Clone main folders slice, we will modify this if imports are enabled
-	return folders, nil
+	return res.Folders, nil
 }
 
 func (f *Folders) Update(options UpdateFolderOptions) (models.Folder, error) {
