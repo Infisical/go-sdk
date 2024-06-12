@@ -11,12 +11,14 @@ type InfisicalClient struct {
 	config     Config
 
 	secrets SecretsInterface
+	folders FoldersInterface
 	auth    AuthInterface
 }
 
 type InfisicalClientInterface interface {
 	UpdateConfiguration(config Config)
 	Secrets() SecretsInterface
+	Folders() FoldersInterface
 	Auth() AuthInterface
 }
 
@@ -44,6 +46,7 @@ func NewInfisicalClient(config Config) InfisicalClientInterface {
 
 	// add interfaces here
 	client.secrets = &Secrets{client: client}
+	client.folders = &Folders{client: client}
 	client.auth = &Auth{client: client}
 
 	return client
@@ -71,6 +74,10 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 
 func (c *InfisicalClient) Secrets() SecretsInterface {
 	return c.secrets
+}
+
+func (c *InfisicalClient) Folders() FoldersInterface {
+	return c.folders
 }
 
 func (c *InfisicalClient) Auth() AuthInterface {
