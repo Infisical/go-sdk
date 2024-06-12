@@ -21,7 +21,7 @@ type UpdateFolderV1Request struct {
 
 	ProjectID   string `json:"workspaceId"`
 	Environment string `json:"environment"`
-	Name        string `json:"name"`
+	NewName     string `json:"name"`
 	Path        string `json:"path,omitempty"`
 }
 
@@ -43,11 +43,12 @@ type CreateFolderV1Response struct {
 
 // Delete folder
 type DeleteFolderV1Request struct {
-	folderID string `json:"-"`
+	// Either folderID or folderName must be provided
+	folderID   string `json:"-"`
+	folderName string `json:"-"`
 
 	ProjectID   string `json:"workspaceId"`
 	Environment string `json:"environment"`
-	Name        string `json:"name"`
 	Path        string `json:"path,omitempty"`
 }
 

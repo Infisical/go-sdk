@@ -21,8 +21,8 @@ type Folders struct {
 	client *InfisicalClient
 }
 
-func (s *Folders) List(options ListFoldersOptions) ([]models.Folder, error) {
-	res, err := api.CallListFoldersV1(s.client.httpClient, options)
+func (f *Folders) List(options ListFoldersOptions) ([]models.Folder, error) {
+	res, err := api.CallListFoldersV1(f.client.httpClient, options)
 
 	if err != nil {
 		return nil, err
@@ -32,8 +32,8 @@ func (s *Folders) List(options ListFoldersOptions) ([]models.Folder, error) {
 	return folders, nil
 }
 
-func (s *Folders) Update(options UpdateFolderOptions) (models.Folder, error) {
-	res, err := api.CallUpdateFolderV1(s.client.httpClient, options)
+func (f *Folders) Update(options UpdateFolderOptions) (models.Folder, error) {
+	res, err := api.CallUpdateFolderV1(f.client.httpClient, options)
 
 	if err != nil {
 		return models.Folder{}, err
@@ -42,8 +42,8 @@ func (s *Folders) Update(options UpdateFolderOptions) (models.Folder, error) {
 	return res.Folder, nil
 }
 
-func (s *Folders) Create(options CreateFolderOptions) (models.Folder, error) {
-	res, err := api.CallCreateFolderV1(s.client.httpClient, options)
+func (f *Folders) Create(options CreateFolderOptions) (models.Folder, error) {
+	res, err := api.CallCreateFolderV1(f.client.httpClient, options)
 
 	if err != nil {
 		return models.Folder{}, err
@@ -52,8 +52,8 @@ func (s *Folders) Create(options CreateFolderOptions) (models.Folder, error) {
 	return res.Folder, nil
 }
 
-func (s *Folders) Delete(options DeleteFolderOptions) (models.Folder, error) {
-	res, err := api.CallDeleteFolderV1(s.client.httpClient, options)
+func (f *Folders) Delete(options DeleteFolderOptions) (models.Folder, error) {
+	res, err := api.CallDeleteFolderV1(f.client.httpClient, options)
 
 	if err != nil {
 		return models.Folder{}, err
