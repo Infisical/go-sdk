@@ -1,11 +1,11 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/go-resty/resty/v2"
-	"github.com/infisical/go-sdk/packages/util"
+	"github.com/infisical/go-sdk/packages/errors"
 )
+
+const callCreateFolderV1Operation = "CallCreateFolderV1"
 
 func CallCreateFolderV1(httpClient *resty.Client, request CreateFolderV1Request) (CreateFolderV1Response, error) {
 
@@ -18,11 +18,11 @@ func CallCreateFolderV1(httpClient *resty.Client, request CreateFolderV1Request)
 	res, err := req.Post("/v1/folders")
 
 	if err != nil {
-		return CreateFolderV1Response{}, fmt.Errorf("CallCreateFolderV1: Unable to complete api request [err=%s]", err)
+		return CreateFolderV1Response{}, errors.NewRequestError(callCreateFolderV1Operation, err)
 	}
 
 	if res.IsError() {
-		return CreateFolderV1Response{}, fmt.Errorf("CallCreateFolderV1: Unsuccessful response [%v %v] [status-code=%v] %s", res.Request.Method, res.Request.URL, res.StatusCode(), fmt.Sprintf("Error: %s", util.TryParseErrorBody(res)))
+		return CreateFolderV1Response{}, errors.NewAPIErrorWithResponse(callCreateFolderV1Operation, res)
 	}
 
 	return createResponse, nil

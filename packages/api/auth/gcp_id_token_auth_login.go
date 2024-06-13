@@ -1,10 +1,11 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/go-resty/resty/v2"
+	"github.com/infisical/go-sdk/packages/errors"
 )
+
+const callGCPAuthLoginOperation = "CallGCPAuthLogin"
 
 func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (accessToken string, e error) {
 	var responseData GenericAuthLoginResponse
@@ -15,11 +16,11 @@ func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (ac
 		Post("/v1/auth/gcp-auth/login")
 
 	if err != nil {
-		return "", fmt.Errorf("CallGCPAuthLogin: Unable to complete api request [err=%s]", err)
+		return "", errors.NewRequestError(callGCPAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return "", fmt.Errorf("CallGCPAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
+		return "", errors.NewAPIError(callGCPAuthLoginOperation, response)
 	}
 
 	return responseData.AccessToken, nil

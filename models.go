@@ -1,20 +1,20 @@
 package infisical
 
-type Secret struct {
-	ID            string `json:"id"`
-	Workspace     string `json:"workspace"`
-	Environment   string `json:"environment"`
-	Version       int    `json:"version"`
-	Type          string `json:"type"`
-	SecretKey     string `json:"secretKey"`
-	SecretValue   string `json:"secretValue"`
-	SecretComment string `json:"secretComment"`
-	SecretPath    string `json:"secretPath,omitempty"`
+import (
+	"github.com/infisical/go-sdk/packages/errors"
+	"github.com/infisical/go-sdk/packages/models"
+)
+
+type Secret = models.Secret
+type SecretImport = models.SecretImport
+
+type APIError = errors.APIError
+type RequestError = errors.RequestError
+
+func IsAPIError(err error) bool {
+	return errors.IsAPIError(err)
 }
 
-type SecretImport struct {
-	SecretPath  string   `json:"secretPath"`
-	Environment string   `json:"environment"`
-	FolderID    string   `json:"folderId"`
-	Secrets     []Secret `json:"secrets"`
+func IsRequestError(err error) bool {
+	return errors.IsRequestError(err)
 }

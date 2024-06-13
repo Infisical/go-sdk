@@ -1,10 +1,11 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/go-resty/resty/v2"
+	"github.com/infisical/go-sdk/packages/errors"
 )
+
+const azureAuthLoginOperation = "CallAzureAuthLogin"
 
 func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest) (accessToken string, e error) {
 	var responseData GenericAuthLoginResponse
@@ -15,11 +16,11 @@ func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest)
 		Post("/v1/auth/azure-auth/login")
 
 	if err != nil {
-		return "", fmt.Errorf("CallAzureAuthLogin: Unable to complete api request [err=%s]", err)
+		return "", errors.NewRequestError(azureAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return "", fmt.Errorf("CallAzureAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
+		return "", errors.NewAPIError(azureAuthLoginOperation, response)
 	}
 
 	return responseData.AccessToken, nil

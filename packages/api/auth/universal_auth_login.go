@@ -1,10 +1,11 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/go-resty/resty/v2"
+	"github.com/infisical/go-sdk/packages/errors"
 )
+
+const callUniversalAuthLoginOperation = "CallUniversalAuthLogin"
 
 func CallUniversalAuthLogin(httpClient *resty.Client, request UniversalAuthLoginRequest) (accessToken string, e error) {
 	var responseData GenericAuthLoginResponse
@@ -15,11 +16,11 @@ func CallUniversalAuthLogin(httpClient *resty.Client, request UniversalAuthLogin
 		Post("/v1/auth/universal-auth/login")
 
 	if err != nil {
-		return "", fmt.Errorf("CallUniversalAuthLogin: Unable to complete api request [err=%s]", err)
+		return "", errors.NewRequestError(callUniversalAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return "", fmt.Errorf("CallUniversalAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
+		return "", errors.NewAPIError(callUniversalAuthLoginOperation, response)
 	}
 
 	return responseData.AccessToken, nil
