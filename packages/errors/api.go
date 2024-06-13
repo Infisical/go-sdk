@@ -53,8 +53,3 @@ func NewAPIErrorWithResponse(operation string, res *resty.Response) error {
 		ErrorMessage: &errorMessage,
 	}
 }
-
-func IsAPIError(err error) bool {
-	_, ok := err.(*APIError)
-	return ok
-}

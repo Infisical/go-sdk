@@ -20,8 +20,3 @@ func NewRequestError(operation string, err error) error {
 		error:     err,
 	}
 }
-
-func IsRequestError(err error) bool {
-	_, ok := err.(*RequestError)
-	return ok
-}

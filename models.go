@@ -10,11 +10,3 @@ type SecretImport = models.SecretImport
 
 type APIError = errors.APIError
 type RequestError = errors.RequestError
-
-func IsAPIError(err error) bool {
-	return errors.IsAPIError(err)
-}
-
-func IsRequestError(err error) bool {
-	return errors.IsRequestError(err)
-}
