@@ -12,6 +12,7 @@ import (
 	"time"
 
 	api "github.com/infisical/go-sdk/packages/api/auth"
+	"github.com/infisical/go-sdk/packages/models"
 	"github.com/infisical/go-sdk/packages/util"
 
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
@@ -29,7 +30,7 @@ type KubernetesAuthLoginOptions struct {
 
 type AuthInterface interface {
 	SetAccessToken(accessToken string)
-	UniversalAuthLogin(clientID string, clientSecret string) (accessToken string, err error)
+	UniversalAuthLogin(clientID string, clientSecret string) (login UniversalAuthCredential, err error)
 	KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (accessToken string, err error)
 	KubernetesRawServiceAccountTokenLogin(identityID string, serviceAccountToken string) (accessToken string, err error)
 	AzureAuthLogin(identityID string) (accessToken string, err error)
@@ -46,7 +47,7 @@ func (a *Auth) SetAccessToken(accessToken string) {
 	a.client.setAccessToken(accessToken, util.ACCESS_TOKEN)
 }
 
-func (a *Auth) UniversalAuthLogin(clientID string, clientSecret string) (token string, err error) {
+func (a *Auth) UniversalAuthLogin(clientID string, clientSecret string) (credential models.UniversalAuthCredential, err error) {
 
 	if clientID == "" {
 		clientID = os.Getenv(util.INFISICAL_UNIVERSAL_AUTH_CLIENT_ID_ENV_NAME)
@@ -55,17 +56,17 @@ func (a *Auth) UniversalAuthLogin(clientID string, clientSecret string) (token s
 		clientSecret = os.Getenv(util.INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET_ENV_NAME)
 	}
 
-	token, err = api.CallUniversalAuthLogin(a.client.httpClient, api.UniversalAuthLoginRequest{
+	credential, err = api.CallUniversalAuthLogin(a.client.httpClient, api.UniversalAuthLoginRequest{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 	})
 
 	if err != nil {
-		return "", err
+		return models.UniversalAuthCredential{}, err
 	}
 
-	a.client.setAccessToken(token, util.UNIVERSAL_AUTH)
-	return token, nil
+	a.client.setAccessToken(credential.AccessToken, util.UNIVERSAL_AUTH)
+	return credential, nil
 
 }
 
