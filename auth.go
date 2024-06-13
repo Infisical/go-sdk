@@ -31,6 +31,7 @@ type AuthInterface interface {
 	SetAccessToken(accessToken string)
 	UniversalAuthLogin(clientID string, clientSecret string) (accessToken string, err error)
 	KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (accessToken string, err error)
+	KubernetesRawServiceAccountTokenLogin(identityID string, serviceAccountToken string) (accessToken string, err error)
 	AzureAuthLogin(identityID string) (accessToken string, err error)
 	GcpIdTokenAuthLogin(identityID string) (accessToken string, err error)
 	GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath string) (accessToken string, err error)
