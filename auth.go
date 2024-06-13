@@ -97,6 +97,25 @@ func (a *Auth) KubernetesAuthLogin(identityID string, serviceAccountTokenPath st
 
 }
 
+func (a *Auth) KubernetesRawServiceAccountTokenLogin(identityID string, serviceAccountToken string) (accessToken string, err error) {
+
+	if identityID == "" {
+		identityID = os.Getenv(util.INFISICAL_KUBERNETES_IDENTITY_ID_ENV_NAME)
+	}
+
+	accessToken, err = api.CallKubernetesAuthLogin(a.client.httpClient, api.KubernetesAuthLoginRequest{
+		IdentityID: identityID,
+		JWT:        serviceAccountToken,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	a.client.setAccessToken(accessToken, util.KUBERNETES)
+	return accessToken, nil
+}
+
 func (a *Auth) AzureAuthLogin(identityID string) (accessToken string, err error) {
 	if identityID == "" {
 		identityID = os.Getenv(util.INFISICAL_AZURE_AUTH_IDENTITY_ID_ENV_NAME)
