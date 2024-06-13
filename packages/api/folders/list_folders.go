@@ -1,11 +1,11 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/go-resty/resty/v2"
-	"github.com/infisical/go-sdk/packages/util"
+	"github.com/infisical/go-sdk/packages/errors"
 )
+
+const callListFoldersV1Operation = "CallListFoldersV1"
 
 func CallListFoldersV1(httpClient *resty.Client, request ListFoldersV1Request) (ListFoldersV1Response, error) {
 
@@ -25,11 +25,11 @@ func CallListFoldersV1(httpClient *resty.Client, request ListFoldersV1Request) (
 		SetQueryParams(queryParams).Get("/v1/folders")
 
 	if err != nil {
-		return ListFoldersV1Response{}, fmt.Errorf("CallListFolderV1: Unable to complete api request [err=%s]", err)
+		return ListFoldersV1Response{}, errors.NewRequestError(callListFoldersV1Operation, err)
 	}
 
 	if res.IsError() {
-		return ListFoldersV1Response{}, fmt.Errorf("CallListFolderV1: Unsuccessful response [%v %v] [status-code=%v] %s", res.Request.Method, res.Request.URL, res.StatusCode(), fmt.Sprintf("Error: %s", util.TryParseErrorBody(res)))
+		return ListFoldersV1Response{}, errors.NewAPIErrorWithResponse(callListFoldersV1Operation, res)
 	}
 
 	return secretsResponse, nil

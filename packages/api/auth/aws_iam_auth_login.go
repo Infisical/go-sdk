@@ -1,10 +1,11 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/go-resty/resty/v2"
+	"github.com/infisical/go-sdk/packages/errors"
 )
+
+const callAWSIamAuthLoginOperation = "CallAWSIamAuthLogin"
 
 func CallAWSIamAuthLogin(httpClient *resty.Client, request AwsIamAuthLoginRequest) (accessToken string, e error) {
 	var responseData GenericAuthLoginResponse
@@ -15,11 +16,11 @@ func CallAWSIamAuthLogin(httpClient *resty.Client, request AwsIamAuthLoginReques
 		Post("/v1/auth/aws-auth/login")
 
 	if err != nil {
-		return "", fmt.Errorf("CallAWSIamAuthLogin: Unable to complete api request [err=%s]", err)
+		return "", errors.NewRequestError(callAWSIamAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return "", fmt.Errorf("CallAWSIamAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
+		return "", errors.NewAPIError(callAWSIamAuthLoginOperation, response)
 	}
 
 	return responseData.AccessToken, nil

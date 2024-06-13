@@ -1,10 +1,11 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/go-resty/resty/v2"
+	"github.com/infisical/go-sdk/packages/errors"
 )
+
+const callKubernetesAuthLoginOperation = "CallKubernetesAuthLogin"
 
 func CallKubernetesAuthLogin(httpClient *resty.Client, request KubernetesAuthLoginRequest) (accessToken string, e error) {
 	var responseData GenericAuthLoginResponse
@@ -15,11 +16,11 @@ func CallKubernetesAuthLogin(httpClient *resty.Client, request KubernetesAuthLog
 		Post("/v1/auth/kubernetes-auth/login")
 
 	if err != nil {
-		return "", fmt.Errorf("CallKubernetesAuthLogin: Unable to complete api request [err=%s]", err)
+		return "", errors.NewRequestError(callKubernetesAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return "", fmt.Errorf("CallKubernetesAuthLogin: Unsuccessful response [%v %v] [status-code=%v]", response.Request.Method, response.Request.URL, response.StatusCode())
+		return "", errors.NewAPIError(callKubernetesAuthLoginOperation, response)
 	}
 
 	return responseData.AccessToken, nil

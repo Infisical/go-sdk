@@ -4,8 +4,10 @@ import (
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/infisical/go-sdk/packages/util"
+	"github.com/infisical/go-sdk/packages/errors"
 )
+
+const callUpdateSecretV3RawOperation = "CallUpdateSecretV3Raw"
 
 func CallUpdateSecretV3(httpClient *resty.Client, request UpdateSecretV3RawRequest) (UpdateSecretV3RawResponse, error) {
 
@@ -18,11 +20,11 @@ func CallUpdateSecretV3(httpClient *resty.Client, request UpdateSecretV3RawReque
 	res, err := req.Patch(fmt.Sprintf("/v3/secrets/raw/%s", request.SecretKey))
 
 	if err != nil {
-		return UpdateSecretV3RawResponse{}, fmt.Errorf("CallUpdateSecretV3: Unable to complete api request [err=%s]", err)
+		return UpdateSecretV3RawResponse{}, errors.NewRequestError(callUpdateSecretV3RawOperation, err)
 	}
 
 	if res.IsError() {
-		return UpdateSecretV3RawResponse{}, fmt.Errorf("CallUpdateSecretV3: Unsuccessful response [%v %v] [status-code=%v] %s", res.Request.Method, res.Request.URL, res.StatusCode(), fmt.Sprintf("Error: %s", util.TryParseErrorBody(res)))
+		return UpdateSecretV3RawResponse{}, errors.NewAPIErrorWithResponse(callUpdateSecretV3RawOperation, res)
 	}
 
 	return updateResponse, nil

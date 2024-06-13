@@ -4,8 +4,10 @@ import (
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/infisical/go-sdk/packages/util"
+	"github.com/infisical/go-sdk/packages/errors"
 )
+
+const callRetrieveSecretV3RawOperation = "CallRetrieveSecretV3Raw"
 
 func CallRetrieveSecretV3(httpClient *resty.Client, request RetrieveSecretV3RawRequest) (RetrieveSecretV3RawResponse, error) {
 
@@ -32,11 +34,11 @@ func CallRetrieveSecretV3(httpClient *resty.Client, request RetrieveSecretV3RawR
 	res, err := req.Get(fmt.Sprintf("/v3/secrets/raw/%s", request.SecretKey))
 
 	if err != nil {
-		return RetrieveSecretV3RawResponse{}, fmt.Errorf("CallRetrieveSecretV3: Unable to complete api request [err=%s]", err)
+		return RetrieveSecretV3RawResponse{}, errors.NewRequestError(callRetrieveSecretV3RawOperation, err)
 	}
 
 	if res.IsError() {
-		return RetrieveSecretV3RawResponse{}, fmt.Errorf("CallRetrieveSecretV3: Unsuccessful response [%v %v] [status-code=%v] %s", res.Request.Method, res.Request.URL, res.StatusCode(), fmt.Sprintf("Error: %s", util.TryParseErrorBody(res)))
+		return RetrieveSecretV3RawResponse{}, errors.NewAPIErrorWithResponse(callRetrieveSecretV3RawOperation, res)
 	}
 
 	return retrieveResponse, nil

@@ -4,8 +4,10 @@ import (
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/infisical/go-sdk/packages/util"
+	"github.com/infisical/go-sdk/packages/errors"
 )
+
+const callListSecretsV3RawOperation = "CallListSecretsV3Raw"
 
 func CallListSecretsV3(httpClient *resty.Client, request ListSecretsV3RawRequest) (ListSecretsV3RawResponse, error) {
 
@@ -28,11 +30,11 @@ func CallListSecretsV3(httpClient *resty.Client, request ListSecretsV3RawRequest
 		}).Get("/v3/secrets/raw")
 
 	if err != nil {
-		return ListSecretsV3RawResponse{}, fmt.Errorf("CallListSecretsV3: Unable to complete api request [err=%s]", err)
+		return ListSecretsV3RawResponse{}, errors.NewRequestError(callListSecretsV3RawOperation, err)
 	}
 
 	if res.IsError() {
-		return ListSecretsV3RawResponse{}, fmt.Errorf("CallListSecretsV3: Unsuccessful response [%v %v] [status-code=%v] %s", res.Request.Method, res.Request.URL, res.StatusCode(), fmt.Sprintf("Error: %s", util.TryParseErrorBody(res)))
+		return ListSecretsV3RawResponse{}, errors.NewAPIErrorWithResponse(callListSecretsV3RawOperation, res)
 	}
 
 	return secretsResponse, nil
