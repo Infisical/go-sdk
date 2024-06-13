@@ -12,8 +12,8 @@ type APIError struct {
 	Operation    string  `json:"operation"`
 	Method       string  `json:"method"`
 	URL          string  `json:"url"`
-	StatusCode   int     `json:"status_code"`
-	ErrorMessage *string `json:"response,omitempty"`
+	StatusCode   int     `json:"statusCode"`
+	ErrorMessage *string `json:"message,omitempty"`
 }
 
 func (e *APIError) Error() string {
