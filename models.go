@@ -1,11 +1,12 @@
 package infisical
 
 import (
+	api "github.com/infisical/go-sdk/packages/api/auth"
 	"github.com/infisical/go-sdk/packages/errors"
 	"github.com/infisical/go-sdk/packages/models"
 )
 
-type UniversalAuthCredential = models.UniversalAuthCredential
+type MachineIdentityCredential = api.MachineIdentityAuthLoginResponse
 
 type Secret = models.Secret
 type SecretImport = models.SecretImport

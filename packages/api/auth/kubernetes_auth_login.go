@@ -7,8 +7,8 @@ import (
 
 const callKubernetesAuthLoginOperation = "CallKubernetesAuthLogin"
 
-func CallKubernetesAuthLogin(httpClient *resty.Client, request KubernetesAuthLoginRequest) (accessToken string, e error) {
-	var responseData GenericAuthLoginResponse
+func CallKubernetesAuthLogin(httpClient *resty.Client, request KubernetesAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
+	var responseData MachineIdentityAuthLoginResponse
 
 	response, err := httpClient.R().
 		SetResult(&responseData).
@@ -16,12 +16,12 @@ func CallKubernetesAuthLogin(httpClient *resty.Client, request KubernetesAuthLog
 		Post("/v1/auth/kubernetes-auth/login")
 
 	if err != nil {
-		return "", errors.NewRequestError(callKubernetesAuthLoginOperation, err)
+		return MachineIdentityAuthLoginResponse{}, errors.NewRequestError(callKubernetesAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return "", errors.NewAPIError(callKubernetesAuthLoginOperation, response)
+		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(callKubernetesAuthLoginOperation, response)
 	}
 
-	return responseData.AccessToken, nil
+	return responseData, nil
 }

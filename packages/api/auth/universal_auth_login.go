@@ -3,13 +3,12 @@ package api
 import (
 	"github.com/go-resty/resty/v2"
 	"github.com/infisical/go-sdk/packages/errors"
-	"github.com/infisical/go-sdk/packages/models"
 )
 
 const callUniversalAuthLoginOperation = "CallUniversalAuthLogin"
 
-func CallUniversalAuthLogin(httpClient *resty.Client, request UniversalAuthLoginRequest) (models.UniversalAuthCredential, error) {
-	var responseData models.UniversalAuthCredential
+func CallUniversalAuthLogin(httpClient *resty.Client, request UniversalAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
+	var responseData MachineIdentityAuthLoginResponse
 
 	response, err := httpClient.R().
 		SetResult(&responseData).

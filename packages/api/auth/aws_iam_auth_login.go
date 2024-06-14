@@ -7,8 +7,8 @@ import (
 
 const callAWSIamAuthLoginOperation = "CallAWSIamAuthLogin"
 
-func CallAWSIamAuthLogin(httpClient *resty.Client, request AwsIamAuthLoginRequest) (accessToken string, e error) {
-	var responseData GenericAuthLoginResponse
+func CallAWSIamAuthLogin(httpClient *resty.Client, request AwsIamAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
+	var responseData MachineIdentityAuthLoginResponse
 
 	response, err := httpClient.R().
 		SetResult(&responseData).
@@ -16,12 +16,12 @@ func CallAWSIamAuthLogin(httpClient *resty.Client, request AwsIamAuthLoginReques
 		Post("/v1/auth/aws-auth/login")
 
 	if err != nil {
-		return "", errors.NewRequestError(callAWSIamAuthLoginOperation, err)
+		return MachineIdentityAuthLoginResponse{}, errors.NewRequestError(callAWSIamAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return "", errors.NewAPIError(callAWSIamAuthLoginOperation, response)
+		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(callAWSIamAuthLoginOperation, response)
 	}
 
-	return responseData.AccessToken, nil
+	return responseData, nil
 }

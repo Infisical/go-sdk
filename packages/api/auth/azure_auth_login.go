@@ -7,8 +7,8 @@ import (
 
 const azureAuthLoginOperation = "CallAzureAuthLogin"
 
-func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest) (accessToken string, e error) {
-	var responseData GenericAuthLoginResponse
+func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
+	var responseData MachineIdentityAuthLoginResponse
 
 	response, err := httpClient.R().
 		SetResult(&responseData).
@@ -16,12 +16,12 @@ func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest)
 		Post("/v1/auth/azure-auth/login")
 
 	if err != nil {
-		return "", errors.NewRequestError(azureAuthLoginOperation, err)
+		return MachineIdentityAuthLoginResponse{}, errors.NewRequestError(azureAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return "", errors.NewAPIError(azureAuthLoginOperation, response)
+		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(azureAuthLoginOperation, response)
 	}
 
-	return responseData.AccessToken, nil
+	return responseData, nil
 }
