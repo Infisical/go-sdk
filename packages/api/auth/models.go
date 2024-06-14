@@ -29,6 +29,9 @@ type GCPAuthLoginRequest struct {
 	JWT        string `json:"jwt"`
 }
 
-type GenericAuthLoginResponse struct {
-	AccessToken string `json:"accessToken"`
+type MachineIdentityAuthLoginResponse struct {
+	AccessToken       string `json:"accessToken"`
+	ExpiresIn         int64  `json:"expiresIn"`
+	AccessTokenMaxTTL int64  `json:"accessTokenMaxTTL"`
+	TokenType         string `json:"tokenType"`
 }

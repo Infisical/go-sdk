@@ -7,8 +7,8 @@ import (
 
 const callUniversalAuthLoginOperation = "CallUniversalAuthLogin"
 
-func CallUniversalAuthLogin(httpClient *resty.Client, request UniversalAuthLoginRequest) (accessToken string, e error) {
-	var responseData GenericAuthLoginResponse
+func CallUniversalAuthLogin(httpClient *resty.Client, request UniversalAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
+	var responseData MachineIdentityAuthLoginResponse
 
 	response, err := httpClient.R().
 		SetResult(&responseData).
@@ -16,12 +16,12 @@ func CallUniversalAuthLogin(httpClient *resty.Client, request UniversalAuthLogin
 		Post("/v1/auth/universal-auth/login")
 
 	if err != nil {
-		return "", errors.NewRequestError(callUniversalAuthLoginOperation, err)
+		return responseData, errors.NewRequestError(callUniversalAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return "", errors.NewAPIError(callUniversalAuthLoginOperation, response)
+		return responseData, errors.NewAPIError(callUniversalAuthLoginOperation, response)
 	}
 
-	return responseData.AccessToken, nil
+	return responseData, nil
 }

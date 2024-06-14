@@ -7,8 +7,8 @@ import (
 
 const callGCPAuthLoginOperation = "CallGCPAuthLogin"
 
-func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (accessToken string, e error) {
-	var responseData GenericAuthLoginResponse
+func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
+	var responseData MachineIdentityAuthLoginResponse
 
 	response, err := httpClient.R().
 		SetResult(&responseData).
@@ -16,12 +16,12 @@ func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (ac
 		Post("/v1/auth/gcp-auth/login")
 
 	if err != nil {
-		return "", errors.NewRequestError(callGCPAuthLoginOperation, err)
+		return MachineIdentityAuthLoginResponse{}, errors.NewRequestError(callGCPAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return "", errors.NewAPIError(callGCPAuthLoginOperation, response)
+		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(callGCPAuthLoginOperation, response)
 	}
 
-	return responseData.AccessToken, nil
+	return responseData, nil
 }
