@@ -3,11 +3,12 @@ package api
 import (
 	"github.com/go-resty/resty/v2"
 	"github.com/infisical/go-sdk/packages/errors"
+	"github.com/infisical/go-sdk/packages/models"
 )
 
 const azureAuthLoginOperation = "CallAzureAuthLogin"
 
-func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
+func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest) (credential models.MachineIdentityCredential, e error) {
 	var responseData MachineIdentityAuthLoginResponse
 
 	response, err := httpClient.R().
@@ -16,12 +17,12 @@ func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest)
 		Post("/v1/auth/azure-auth/login")
 
 	if err != nil {
-		return MachineIdentityAuthLoginResponse{}, errors.NewRequestError(azureAuthLoginOperation, err)
+		return models.MachineIdentityCredential{}, errors.NewRequestError(azureAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(azureAuthLoginOperation, response)
+		return models.MachineIdentityCredential{}, errors.NewAPIError(azureAuthLoginOperation, response)
 	}
 
-	return responseData, nil
+	return responseData.ToMachineIdentity(), nil
 }
