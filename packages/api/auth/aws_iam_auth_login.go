@@ -3,11 +3,12 @@ package api
 import (
 	"github.com/go-resty/resty/v2"
 	"github.com/infisical/go-sdk/packages/errors"
+	"github.com/infisical/go-sdk/packages/models"
 )
 
 const callAWSIamAuthLoginOperation = "CallAWSIamAuthLogin"
 
-func CallAWSIamAuthLogin(httpClient *resty.Client, request AwsIamAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
+func CallAWSIamAuthLogin(httpClient *resty.Client, request AwsIamAuthLoginRequest) (credential models.MachineIdentityCredential, e error) {
 	var responseData MachineIdentityAuthLoginResponse
 
 	response, err := httpClient.R().
@@ -16,12 +17,12 @@ func CallAWSIamAuthLogin(httpClient *resty.Client, request AwsIamAuthLoginReques
 		Post("/v1/auth/aws-auth/login")
 
 	if err != nil {
-		return MachineIdentityAuthLoginResponse{}, errors.NewRequestError(callAWSIamAuthLoginOperation, err)
+		return models.MachineIdentityCredential{}, errors.NewRequestError(callAWSIamAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(callAWSIamAuthLoginOperation, response)
+		return models.MachineIdentityCredential{}, errors.NewAPIError(callAWSIamAuthLoginOperation, response)
 	}
 
-	return responseData, nil
+	return responseData.ToMachineIdentity(), nil
 }

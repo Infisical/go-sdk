@@ -34,6 +34,8 @@ type AuthInterface interface {
 	GcpIdTokenAuthLogin(identityID string) (credential MachineIdentityCredential, err error)
 	GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath string) (credential MachineIdentityCredential, err error)
 	AwsIamAuthLogin(identityId string) (credential MachineIdentityCredential, err error)
+	// Renew access token. This is useful when you want to refresh the access token before it expires.
+	TokenRenew(accessToken string) (credential MachineIdentityCredential, err error)
 }
 
 type Auth struct {
@@ -266,6 +268,20 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (credential MachineIdentityCre
 
 	a.client.setAccessToken(credential.AccessToken, util.AWS_IAM)
 	return credential, nil
+}
+
+func (a *Auth) TokenRenew(accessToken string) (credential MachineIdentityCredential, err error) {
+	credential, err = api.CallTokenRenew(a.client.httpClient, api.TokenRenewRequest{
+		AccessToken: accessToken,
+	})
+
+	if err != nil {
+		return MachineIdentityCredential{}, err
+	}
+
+	a.client.setAccessToken(credential.AccessToken, util.UNIVERSAL_AUTH)
+	return credential, nil
+
 }
 
 func NewAuth(client *InfisicalClient) AuthInterface {

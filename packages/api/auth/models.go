@@ -1,5 +1,11 @@
 package api
 
+import (
+	"time"
+
+	"github.com/infisical/go-sdk/packages/models"
+)
+
 // Universal auth:
 type UniversalAuthLoginRequest struct {
 	ClientID     string `json:"clientId"`
@@ -34,4 +40,17 @@ type MachineIdentityAuthLoginResponse struct {
 	ExpiresIn         int64  `json:"expiresIn"`
 	AccessTokenMaxTTL int64  `json:"accessTokenMaxTTL"`
 	TokenType         string `json:"tokenType"`
+}
+
+func (m MachineIdentityAuthLoginResponse) ToMachineIdentity() models.MachineIdentityCredential {
+	return models.MachineIdentityCredential{
+		AccessToken:       m.AccessToken,
+		ExpiresIn:         time.Duration(m.ExpiresIn * int64(time.Second)),
+		AccessTokenMaxTTL: time.Duration(m.AccessTokenMaxTTL * int64(time.Second)),
+		TokenType:         m.TokenType,
+	}
+}
+
+type TokenRenewRequest struct {
+	AccessToken string `json:"accessToken"`
 }

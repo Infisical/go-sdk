@@ -3,11 +3,12 @@ package api
 import (
 	"github.com/go-resty/resty/v2"
 	"github.com/infisical/go-sdk/packages/errors"
+	"github.com/infisical/go-sdk/packages/models"
 )
 
 const callKubernetesAuthLoginOperation = "CallKubernetesAuthLogin"
 
-func CallKubernetesAuthLogin(httpClient *resty.Client, request KubernetesAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
+func CallKubernetesAuthLogin(httpClient *resty.Client, request KubernetesAuthLoginRequest) (credential models.MachineIdentityCredential, e error) {
 	var responseData MachineIdentityAuthLoginResponse
 
 	response, err := httpClient.R().
@@ -16,12 +17,12 @@ func CallKubernetesAuthLogin(httpClient *resty.Client, request KubernetesAuthLog
 		Post("/v1/auth/kubernetes-auth/login")
 
 	if err != nil {
-		return MachineIdentityAuthLoginResponse{}, errors.NewRequestError(callKubernetesAuthLoginOperation, err)
+		return models.MachineIdentityCredential{}, errors.NewRequestError(callKubernetesAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(callKubernetesAuthLoginOperation, response)
+		return models.MachineIdentityCredential{}, errors.NewAPIError(callKubernetesAuthLoginOperation, response)
 	}
 
-	return responseData, nil
+	return responseData.ToMachineIdentity(), nil
 }

@@ -3,11 +3,12 @@ package api
 import (
 	"github.com/go-resty/resty/v2"
 	"github.com/infisical/go-sdk/packages/errors"
+	"github.com/infisical/go-sdk/packages/models"
 )
 
 const callGCPAuthLoginOperation = "CallGCPAuthLogin"
 
-func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
+func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (credential models.MachineIdentityCredential, e error) {
 	var responseData MachineIdentityAuthLoginResponse
 
 	response, err := httpClient.R().
@@ -16,12 +17,12 @@ func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (cr
 		Post("/v1/auth/gcp-auth/login")
 
 	if err != nil {
-		return MachineIdentityAuthLoginResponse{}, errors.NewRequestError(callGCPAuthLoginOperation, err)
+		return models.MachineIdentityCredential{}, errors.NewRequestError(callGCPAuthLoginOperation, err)
 	}
 
 	if response.IsError() {
-		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(callGCPAuthLoginOperation, response)
+		return models.MachineIdentityCredential{}, errors.NewAPIError(callGCPAuthLoginOperation, response)
 	}
 
-	return responseData, nil
+	return responseData.ToMachineIdentity(), nil
 }
