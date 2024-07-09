@@ -51,7 +51,7 @@ func GetAzureMetadataToken(httpClient *resty.Client) (string, error) {
 		return "", fmt.Errorf("GetAzureMetadataToken: Unsuccessful response [%v %v] [status-code=%v] [Error: %s]", response.Request.Method, response.Request.URL, response.StatusCode(), TryParseErrorBody(response))
 	}
 
-	return response.String(), nil
+	return metadataResponse.AccessToken, nil
 }
 
 func GetGCPMetadataToken(httpClient *resty.Client, identityID string) (string, error) {
