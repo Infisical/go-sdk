@@ -29,6 +29,11 @@ type GCPAuthLoginRequest struct {
 	JWT        string `json:"jwt"`
 }
 
+type OidcAuthLoginRequest struct {
+	IdentityID string `json:"identityId"`
+	JWT        string `json:"jwt"`
+}
+
 type MachineIdentityAuthLoginResponse struct {
 	AccessToken       string `json:"accessToken"`
 	ExpiresIn         int64  `json:"expiresIn"`

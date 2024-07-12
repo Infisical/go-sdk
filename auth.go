@@ -34,6 +34,7 @@ type AuthInterface interface {
 	GcpIdTokenAuthLogin(identityID string) (credential MachineIdentityCredential, err error)
 	GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath string) (credential MachineIdentityCredential, err error)
 	AwsIamAuthLogin(identityId string) (credential MachineIdentityCredential, err error)
+	OidcAuthLogin(identityId string, jwt string) (credential MachineIdentityCredential, err error)
 }
 
 type Auth struct {
@@ -266,6 +267,25 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (credential MachineIdentityCre
 
 	a.client.setAccessToken(credential.AccessToken, util.AWS_IAM)
 	return credential, nil
+}
+
+func(a *Auth) OidcAuthLogin(identityId string, jwt string) (credential MachineIdentityCredential, err error) {
+	if identityId == "" {
+		identityId = os.Getenv(util.INFISICAL_OIDC_AUTH_IDENTITY_ID_ENV_NAME)
+	}
+
+	credential, err = api.CallOidcAuthLogin(a.client.httpClient, api.OidcAuthLoginRequest{
+		IdentityID: identityId,
+		JWT:        jwt,
+	})
+
+	if err != nil {
+		return MachineIdentityCredential{}, err
+	}
+
+	a.client.setAccessToken(credential.AccessToken, util.OIDC_AUTH)
+	return credential, nil
+
 }
 
 func NewAuth(client *InfisicalClient) AuthInterface {
