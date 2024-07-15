@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"time"
 
@@ -29,7 +30,14 @@ func GetKubernetesServiceAccountToken(serviceAccountTokenPath string) (string, e
 
 }
 
-func GetAzureMetadataToken(httpClient *resty.Client) (string, error) {
+func buildAzureMetadataServiceURL(resource string) string {
+	if resource != "" {
+		return AZURE_METADATA_SERVICE_URL + url.QueryEscape(resource)
+	}
+	return AZURE_METADATA_SERVICE_URL + AZURE_DEFAULT_RESOURCE
+}
+
+func GetAzureMetadataToken(httpClient *resty.Client, customResource string) (string, error) {
 
 	type AzureMetadataResponse struct {
 		AccessToken string `json:"access_token"`
@@ -41,7 +49,7 @@ func GetAzureMetadataToken(httpClient *resty.Client) (string, error) {
 		SetResult(&metadataResponse).
 		SetHeader("Metadata", "true").
 		SetHeader("Accept", "application/json").
-		Get(AZURE_METADATA_SERVICE_URL)
+		Get(buildAzureMetadataServiceURL(customResource))
 
 	if err != nil {
 		return "", err
