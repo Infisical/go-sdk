@@ -30,7 +30,7 @@ type AuthInterface interface {
 	UniversalAuthLogin(clientID string, clientSecret string) (credential MachineIdentityCredential, err error)
 	KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (credential MachineIdentityCredential, err error)
 	KubernetesRawServiceAccountTokenLogin(identityID string, serviceAccountToken string) (credential MachineIdentityCredential, err error)
-	AzureAuthLogin(identityID string) (credential MachineIdentityCredential, err error)
+	AzureAuthLogin(identityID string, resource string) (credential MachineIdentityCredential, err error)
 	GcpIdTokenAuthLogin(identityID string) (credential MachineIdentityCredential, err error)
 	GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath string) (credential MachineIdentityCredential, err error)
 	AwsIamAuthLogin(identityId string) (credential MachineIdentityCredential, err error)
@@ -116,12 +116,12 @@ func (a *Auth) KubernetesRawServiceAccountTokenLogin(identityID string, serviceA
 	return credential, nil
 }
 
-func (a *Auth) AzureAuthLogin(identityID string) (credential MachineIdentityCredential, err error) {
+func (a *Auth) AzureAuthLogin(identityID string, resource string) (credential MachineIdentityCredential, err error) {
 	if identityID == "" {
 		identityID = os.Getenv(util.INFISICAL_AZURE_AUTH_IDENTITY_ID_ENV_NAME)
 	}
 
-	jwt, jwtError := util.GetAzureMetadataToken(a.client.httpClient)
+	jwt, jwtError := util.GetAzureMetadataToken(a.client.httpClient, resource)
 
 	if jwtError != nil {
 		return MachineIdentityCredential{}, jwtError
@@ -269,7 +269,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (credential MachineIdentityCre
 	return credential, nil
 }
 
-func(a *Auth) OidcAuthLogin(identityId string, jwt string) (credential MachineIdentityCredential, err error) {
+func (a *Auth) OidcAuthLogin(identityId string, jwt string) (credential MachineIdentityCredential, err error) {
 	if identityId == "" {
 		identityId = os.Getenv(util.INFISICAL_OIDC_AUTH_IDENTITY_ID_ENV_NAME)
 	}

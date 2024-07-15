@@ -32,7 +32,8 @@ const (
 	AWS_EC2_INSTANCE_IDENTITY_DOCUMENT_URL = "http://169.254.169.254/latest/dynamic/instance-identity/document"
 
 	// Azure metadata service:
-	AZURE_METADATA_SERVICE_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2Fmanagement.azure.com%2F"
+	AZURE_METADATA_SERVICE_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=" // End of the URL needs to be appended with the resource
+	AZURE_DEFAULT_RESOURCE     = "https%3A%2F%2Fmanagement.azure.com%2F"
 )
 
 type AuthMethod string
@@ -45,7 +46,7 @@ const (
 	AWS_IAM        AuthMethod = "AWS_IAM"
 	KUBERNETES     AuthMethod = "KUBERNETES"
 	AZURE          AuthMethod = "AZURE"
-	OIDC_AUTH	   AuthMethod = "OIDC_AUTH"
+	OIDC_AUTH      AuthMethod = "OIDC_AUTH"
 )
 
 // General:
