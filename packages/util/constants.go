@@ -33,7 +33,7 @@ const (
 
 	// Azure metadata service:
 	AZURE_METADATA_SERVICE_URL = "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=" // End of the URL needs to be appended with the resource
-	AZURE_DEFAULT_RESOURCE     = "https%3A%2F%2Fmanagement.azure.com%2F/"
+	AZURE_DEFAULT_RESOURCE     = "https%3A%2F%2Fmanagement.azure.com/"
 )
 
 type AuthMethod string
