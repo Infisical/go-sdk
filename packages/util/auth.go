@@ -32,7 +32,7 @@ func GetKubernetesServiceAccountToken(serviceAccountTokenPath string) (string, e
 
 func buildAzureMetadataServiceURL(resource string) string {
 	if resource != "" {
-		return AZURE_METADATA_SERVICE_URL + url.QueryEscape(resource)
+		return AZURE_METADATA_SERVICE_URL + url.PathEscape(resource)
 	}
 	return AZURE_METADATA_SERVICE_URL + AZURE_DEFAULT_RESOURCE
 }
