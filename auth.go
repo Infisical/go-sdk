@@ -27,7 +27,7 @@ type KubernetesAuthLoginOptions struct {
 // func epochTime() time.Time { return time.Unix(0, 0) }
 
 type AuthInterface interface {
-	SetAccessToken(accessToken string) (credential MachineIdentityCredential, err error)
+	SetAccessToken(accessToken string)
 	UniversalAuthLogin(clientID string, clientSecret string) (credential MachineIdentityCredential, err error)
 	KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (credential MachineIdentityCredential, err error)
 	KubernetesRawServiceAccountTokenLogin(identityID string, serviceAccountToken string) (credential MachineIdentityCredential, err error)
@@ -42,20 +42,8 @@ type Auth struct {
 	client *InfisicalClient
 }
 
-func (a *Auth) SetAccessToken(accessToken string) (credential MachineIdentityCredential, err error) {
-
-	renewedToken, err := api.CallRenewAccessToken(a.client.httpClient, api.RenewAccessTokenRequest{
-		AccessToken: accessToken,
-	})
-
-	if err != nil {
-		return MachineIdentityCredential{}, err
-	}
-
-	a.client.setAccessToken(renewedToken, models.AccessTokenCredential{AccessToken: accessToken}, util.ACCESS_TOKEN)
-
-	return renewedToken, nil
-
+func (a *Auth) SetAccessToken(accessToken string) {
+	a.client.setPlainAccessToken(accessToken)
 }
 
 func (a *Auth) UniversalAuthLogin(clientID string, clientSecret string) (credential MachineIdentityCredential, err error) {

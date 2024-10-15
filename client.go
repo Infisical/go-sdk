@@ -101,6 +101,15 @@ func (c *InfisicalClient) setAccessToken(tokenDetails MachineIdentityCredential,
 	c.httpClient.SetAuthToken(c.tokenDetails.AccessToken)
 }
 
+func (c *InfisicalClient) setPlainAccessToken(accessToken string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.authMethod = util.ACCESS_TOKEN
+	c.httpClient.SetAuthScheme("Bearer")
+	c.httpClient.SetAuthToken(accessToken)
+}
+
 func NewInfisicalClient(config *Config) InfisicalClientInterface {
 	client := &InfisicalClient{}
 
@@ -204,7 +213,7 @@ func (c *InfisicalClient) handleTokenLifeCycle() {
 		clientCredential := c.credential
 		c.mu.RUnlock()
 
-		if config.AutoTokenRefresh && authMethod != "" {
+		if config.AutoTokenRefresh && authMethod != "" && authMethod != util.ACCESS_TOKEN {
 
 			if !config.SilentMode && !warningPrinted && tokenDetails.AccessTokenMaxTTL != 0 && tokenDetails.ExpiresIn != 0 {
 				if tokenDetails.AccessTokenMaxTTL < 60 || tokenDetails.ExpiresIn < 60 {
