@@ -10,7 +10,11 @@ const callGCPAuthLoginOperation = "CallGCPAuthLogin"
 func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
 	var responseData MachineIdentityAuthLoginResponse
 
-	response, err := httpClient.R().
+	clonedClient := httpClient.Clone()
+	clonedClient.SetAuthToken("")
+	clonedClient.SetAuthScheme("")
+
+	response, err := clonedClient.R().
 		SetResult(&responseData).
 		SetBody(request).
 		Post("/v1/auth/gcp-auth/login")

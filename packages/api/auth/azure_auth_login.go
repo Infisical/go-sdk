@@ -10,7 +10,11 @@ const azureAuthLoginOperation = "CallAzureAuthLogin"
 func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
 	var responseData MachineIdentityAuthLoginResponse
 
-	response, err := httpClient.R().
+	clonedClient := httpClient.Clone()
+	clonedClient.SetAuthToken("")
+	clonedClient.SetAuthScheme("")
+
+	response, err := clonedClient.R().
 		SetResult(&responseData).
 		SetBody(request).
 		Post("/v1/auth/azure-auth/login")
