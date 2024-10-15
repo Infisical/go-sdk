@@ -40,3 +40,7 @@ type MachineIdentityAuthLoginResponse struct {
 	AccessTokenMaxTTL int64  `json:"accessTokenMaxTTL"`
 	TokenType         string `json:"tokenType"`
 }
+
+type RenewAccessTokenRequest struct {
+	AccessToken string `json:"accessToken"`
+}

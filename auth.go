@@ -12,6 +12,7 @@ import (
 	"time"
 
 	api "github.com/infisical/go-sdk/packages/api/auth"
+	"github.com/infisical/go-sdk/packages/models"
 	"github.com/infisical/go-sdk/packages/util"
 
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
@@ -26,7 +27,7 @@ type KubernetesAuthLoginOptions struct {
 // func epochTime() time.Time { return time.Unix(0, 0) }
 
 type AuthInterface interface {
-	SetAccessToken(accessToken string)
+	SetAccessToken(accessToken string) (credential MachineIdentityCredential, err error)
 	UniversalAuthLogin(clientID string, clientSecret string) (credential MachineIdentityCredential, err error)
 	KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (credential MachineIdentityCredential, err error)
 	KubernetesRawServiceAccountTokenLogin(identityID string, serviceAccountToken string) (credential MachineIdentityCredential, err error)
@@ -41,8 +42,20 @@ type Auth struct {
 	client *InfisicalClient
 }
 
-func (a *Auth) SetAccessToken(accessToken string) {
-	a.client.setAccessToken(accessToken, util.ACCESS_TOKEN)
+func (a *Auth) SetAccessToken(accessToken string) (credential MachineIdentityCredential, err error) {
+
+	renewedToken, err := api.CallRenewAccessToken(a.client.httpClient, api.RenewAccessTokenRequest{
+		AccessToken: accessToken,
+	})
+
+	if err != nil {
+		return MachineIdentityCredential{}, err
+	}
+
+	a.client.setAccessToken(renewedToken, models.AccessTokenCredential{AccessToken: accessToken}, util.ACCESS_TOKEN)
+
+	return renewedToken, nil
+
 }
 
 func (a *Auth) UniversalAuthLogin(clientID string, clientSecret string) (credential MachineIdentityCredential, err error) {
@@ -63,7 +76,11 @@ func (a *Auth) UniversalAuthLogin(clientID string, clientSecret string) (credent
 		return MachineIdentityCredential{}, err
 	}
 
-	a.client.setAccessToken(credential.AccessToken, util.UNIVERSAL_AUTH)
+	a.client.setAccessToken(
+		credential,
+		models.UniversalAuthCredential{ClientID: clientID, ClientSecret: clientSecret},
+		util.UNIVERSAL_AUTH,
+	)
 	return credential, nil
 
 }
@@ -92,7 +109,12 @@ func (a *Auth) KubernetesAuthLogin(identityID string, serviceAccountTokenPath st
 		return MachineIdentityCredential{}, err
 	}
 
-	a.client.setAccessToken(credential.AccessToken, util.KUBERNETES)
+	a.client.setAccessToken(
+		credential,
+		models.KubernetesCredential{IdentityID: identityID, ServiceAccountToken: serviceAccountToken},
+		util.KUBERNETES,
+	)
+
 	return credential, nil
 
 }
@@ -112,7 +134,11 @@ func (a *Auth) KubernetesRawServiceAccountTokenLogin(identityID string, serviceA
 		return MachineIdentityCredential{}, err
 	}
 
-	a.client.setAccessToken(credential.AccessToken, util.KUBERNETES)
+	a.client.setAccessToken(
+		credential,
+		models.KubernetesCredential{IdentityID: identityID, ServiceAccountToken: serviceAccountToken},
+		util.KUBERNETES,
+	)
 	return credential, nil
 }
 
@@ -136,7 +162,11 @@ func (a *Auth) AzureAuthLogin(identityID string, resource string) (credential Ma
 		return MachineIdentityCredential{}, err
 	}
 
-	a.client.setAccessToken(credential.AccessToken, util.AZURE)
+	a.client.setAccessToken(
+		credential,
+		models.AzureCredential{IdentityID: identityID, Resource: resource},
+		util.AZURE,
+	)
 	return credential, nil
 }
 
@@ -160,7 +190,11 @@ func (a *Auth) GcpIdTokenAuthLogin(identityID string) (credential MachineIdentit
 		return MachineIdentityCredential{}, err
 	}
 
-	a.client.setAccessToken(credential.AccessToken, util.GCP_ID_TOKEN)
+	a.client.setAccessToken(
+		credential,
+		models.GCPIDTokenCredential{IdentityID: identityID},
+		util.GCP_ID_TOKEN,
+	)
 	return credential, nil
 }
 
@@ -187,7 +221,11 @@ func (a *Auth) GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath stri
 		return MachineIdentityCredential{}, err
 	}
 
-	a.client.setAccessToken(credential.AccessToken, util.GCP_IAM)
+	a.client.setAccessToken(
+		credential,
+		models.GCPIAMCredential{IdentityID: identityID, ServiceAccountKeyFilePath: serviceAccountKeyFilePath},
+		util.GCP_IAM,
+	)
 	return credential, nil
 }
 
@@ -265,7 +303,11 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (credential MachineIdentityCre
 		return MachineIdentityCredential{}, tokenErr
 	}
 
-	a.client.setAccessToken(credential.AccessToken, util.AWS_IAM)
+	a.client.setAccessToken(
+		credential,
+		models.AWSIAMCredential{IdentityID: identityId},
+		util.AWS_IAM,
+	)
 	return credential, nil
 }
 
@@ -283,7 +325,11 @@ func (a *Auth) OidcAuthLogin(identityId string, jwt string) (credential MachineI
 		return MachineIdentityCredential{}, err
 	}
 
-	a.client.setAccessToken(credential.AccessToken, util.OIDC_AUTH)
+	a.client.setAccessToken(
+		credential,
+		models.OIDCCredential{IdentityID: identityId},
+		util.OIDC_AUTH,
+	)
 	return credential, nil
 
 }
