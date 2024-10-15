@@ -56,24 +56,28 @@ func NewInfisicalClientConfig(options ...func(*Config)) *Config {
 	return cfg
 }
 
+// The site URL of the Infisical instance. The default value is `https://app.infisical.com`.
 func WithSiteUrl(siteUrl string) func(*Config) {
 	return func(s *Config) {
 		s.SiteUrl = siteUrl
 	}
 }
 
+// The user agent to be used in the HTTP requests. If not set, it will default to `infisical-go-sdk`, and this is not recommended to be changed unless necessary.
 func WithUserAgent(userAgent string) func(*Config) {
 	return func(s *Config) {
 		s.UserAgent = userAgent
 	}
 }
 
+// If set to true, the client will automatically refresh the access token when it is about to expire. If set to false, the client will not refresh the access token automatically. The default value is `true`.
 func WithAutoTokenRefresh(autoTokenRefresh bool) func(*Config) {
 	return func(s *Config) {
 		s.AutoTokenRefresh = autoTokenRefresh
 	}
 }
 
+// If set to true, the client will not print any warning messages. If set to false, the client will print warning messages when necessary. The default value is `false`.
 func WithSilentMode(silentMode bool) func(*Config) {
 	return func(s *Config) {
 		s.SilentMode = silentMode
