@@ -204,8 +204,10 @@ func (c *InfisicalClient) handleTokenLifeCycle() {
 		},
 	}
 
-	for {
+	const RE_AUTHENTICATION_INTERVAL_BUFFER = 10
+	const RENEWAL_INTERVAL_BUFFER = 5
 
+	for {
 		c.mu.RLock()
 		config := c.config
 		authMethod := c.authMethod
@@ -229,30 +231,37 @@ func (c *InfisicalClient) handleTokenLifeCycle() {
 			timeSinceFirstFetchSeconds := timeNow.Sub(c.firstFetchedTime).Seconds()
 			c.mu.RUnlock()
 
-			if timeSinceFirstFetchSeconds >= float64(tokenDetails.AccessTokenMaxTTL-10) {
+			if timeSinceFirstFetchSeconds >= float64(tokenDetails.AccessTokenMaxTTL-RE_AUTHENTICATION_INTERVAL_BUFFER) {
 				newToken, err := authStrategies[c.authMethod](clientCredential)
 
 				if err != nil && !config.SilentMode {
 					util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
 				} else {
 					c.setAccessToken(newToken, c.credential, c.authMethod)
-					// fmt.Println("Access token successfully re-authenticated\n")
 					c.mu.Lock()
 					c.firstFetchedTime = time.Now()
 					c.mu.Unlock()
 				}
 
-			} else if timeSinceLastFetchSeconds >= float64(tokenDetails.ExpiresIn-5) {
-				// fmt.Printf("Access token expired, renewing...\n")
+			} else if timeSinceLastFetchSeconds >= float64(tokenDetails.ExpiresIn-RENEWAL_INTERVAL_BUFFER) {
 
 				renewedCredential, err := api.CallRenewAccessToken(c.httpClient, api.RenewAccessTokenRequest{AccessToken: tokenDetails.AccessToken})
 
 				if err != nil {
 					if !config.SilentMode {
-						util.PrintWarning(fmt.Sprintf("Failed to renew access token: %s", err.Error()))
+						util.PrintWarning(fmt.Sprintf("Failed to renew access token: %s\n\nAttempting to re-authenticate.", err.Error()))
+					}
+
+					newToken, err := authStrategies[c.authMethod](clientCredential)
+					if err != nil && !config.SilentMode {
+						util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
+					} else {
+						c.setAccessToken(newToken, c.credential, c.authMethod)
+						c.mu.Lock()
+						c.firstFetchedTime = time.Now()
+						c.mu.Unlock()
 					}
 				} else {
-					// fmt.Println("Access token successfully renewed\n")
 					c.setAccessToken(renewedCredential, clientCredential, authMethod)
 				}
 			}
@@ -269,7 +278,7 @@ func (c *InfisicalClient) handleTokenLifeCycle() {
 				time.Sleep(expiresIn - (5 * time.Second))
 			}
 		} else {
-			time.Sleep(5 * time.Second)
+			time.Sleep(1 * time.Second)
 		}
 
 	}
