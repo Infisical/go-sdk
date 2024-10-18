@@ -10,7 +10,11 @@ const callOidcAuthLoginOperation = "CallOidcAuthLogin"
 func CallOidcAuthLogin(httpClient *resty.Client, request OidcAuthLoginRequest) (credential MachineIdentityAuthLoginResponse, e error) {
 	var responseData MachineIdentityAuthLoginResponse
 
-	response, err := httpClient.R().
+	clonedClient := httpClient.Clone()
+	clonedClient.SetAuthToken("")
+	clonedClient.SetAuthScheme("")
+
+	response, err := clonedClient.R().
 		SetResult(&responseData).
 		SetBody(request).
 		Post("/v1/auth/oidc-auth/login")
