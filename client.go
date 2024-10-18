@@ -2,6 +2,8 @@ package infisical
 
 import (
 	"fmt"
+	"reflect"
+	"strconv"
 	"sync"
 	"time"
 
@@ -29,58 +31,46 @@ type InfisicalClient struct {
 }
 
 type InfisicalClientInterface interface {
-	UpdateConfiguration(config *Config)
+	UpdateConfiguration(config Config)
 	Secrets() SecretsInterface
 	Folders() FoldersInterface
 	Auth() AuthInterface
 }
 
 type Config struct {
-	SiteUrl          string
-	UserAgent        string // optional, we set this when instantiating the client in the k8s operator / cli.
-	AutoTokenRefresh bool   // defaults to trues
-	SilentMode       bool   // defaults to false
+	SiteUrl          string `default:"https://app.infisical.com"`
+	UserAgent        string `default:"infisical-go-sdk"` // optional, we set this when instantiating the client in the k8s operator / cli.
+	AutoTokenRefresh bool   `default:"true"`             // defaults to trues
+	SilentMode       bool   `default:"false"`            // defaults to false
 }
 
-func NewInfisicalClientConfig(options ...func(*Config)) *Config {
-	cfg := &Config{
-		SiteUrl:          util.DEFAULT_INFISICAL_API_URL,
-		UserAgent:        "infisical-go-sdk",
-		AutoTokenRefresh: true,
-		SilentMode:       false,
-	}
+func setDefaults(cfg *Config) {
+	t := reflect.TypeOf(*cfg) // we need to dereference the pointer to get the struct type
+	v := reflect.ValueOf(cfg).Elem()
 
-	for _, opt := range options {
-		opt(cfg)
-	}
-	return cfg
-}
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		defaultVal := field.Tag.Get("default")
+		if defaultVal == "" {
+			continue
+		}
 
-// The site URL of the Infisical instance. The default value is `https://app.infisical.com`.
-func WithSiteUrl(siteUrl string) func(*Config) {
-	return func(s *Config) {
-		s.SiteUrl = siteUrl
-	}
-}
-
-// The user agent to be used in the HTTP requests. If not set, it will default to `infisical-go-sdk`, and this is not recommended to be changed unless necessary.
-func WithUserAgent(userAgent string) func(*Config) {
-	return func(s *Config) {
-		s.UserAgent = userAgent
-	}
-}
-
-// If set to true, the client will automatically refresh the access token when it is about to expire. If set to false, the client will not refresh the access token automatically. The default value is `true`.
-func WithAutoTokenRefresh(autoTokenRefresh bool) func(*Config) {
-	return func(s *Config) {
-		s.AutoTokenRefresh = autoTokenRefresh
-	}
-}
-
-// If set to true, the client will not print any warning messages. If set to false, the client will print warning messages when necessary. The default value is `false`.
-func WithSilentMode(silentMode bool) func(*Config) {
-	return func(s *Config) {
-		s.SilentMode = silentMode
+		switch field.Type.Kind() {
+		case reflect.Int:
+			if v.Field(i).Int() == 0 {
+				val, _ := strconv.Atoi(defaultVal)
+				v.Field(i).SetInt(int64(val))
+			}
+		case reflect.String:
+			if v.Field(i).String() == "" {
+				v.Field(i).SetString(defaultVal)
+			}
+		case reflect.Bool:
+			if !v.Field(i).Bool() {
+				val, _ := strconv.ParseBool(defaultVal)
+				v.Field(i).SetBool(val)
+			}
+		}
 	}
 }
 
@@ -110,13 +100,10 @@ func (c *InfisicalClient) setPlainAccessToken(accessToken string) {
 	c.httpClient.SetAuthToken(accessToken)
 }
 
-func NewInfisicalClient(config *Config) InfisicalClientInterface {
+func NewInfisicalClient(config Config) InfisicalClientInterface {
 	client := &InfisicalClient{}
 
-	if config == nil {
-		config = NewInfisicalClientConfig()
-	}
-
+	setDefaults(&config)
 	client.UpdateConfiguration(config) // set httpClient and config
 
 	// add interfaces here
@@ -131,12 +118,13 @@ func NewInfisicalClient(config *Config) InfisicalClientInterface {
 	return client
 }
 
-func (c *InfisicalClient) UpdateConfiguration(config *Config) {
+func (c *InfisicalClient) UpdateConfiguration(config Config) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	setDefaults(&config)
 	config.SiteUrl = util.AppendAPIEndpoint(config.SiteUrl)
-	c.config = *config
+	c.config = config
 
 	if c.httpClient == nil {
 		c.httpClient = resty.New().

@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go/iam v1.1.11
 	github.com/aws/aws-sdk-go-v2 v1.27.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.18
+	github.com/fatih/color v1.17.0
 	github.com/go-resty/resty/v2 v2.13.1
 	google.golang.org/api v0.188.0
 )
@@ -25,7 +26,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.12 // indirect
 	github.com/aws/smithy-go v1.20.2 // indirect
-	github.com/fatih/color v1.17.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
