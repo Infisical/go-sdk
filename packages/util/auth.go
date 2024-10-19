@@ -119,7 +119,6 @@ func GetAwsEC2IdentityDocumentRegion(timeout int) (string, error) {
 	var identityDocument AwsIdentityDocument
 	err = json.Unmarshal(res.Body(), &identityDocument)
 	if err != nil {
-		fmt.Printf("JSON unmarshal error: %v\n", err)
 		return "", err
 	}
 

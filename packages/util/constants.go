@@ -1,5 +1,10 @@
 package util
 
+import (
+	"context"
+	"errors"
+)
+
 // Auth related:
 const (
 
@@ -54,3 +59,6 @@ const (
 	DEFAULT_INFISICAL_API_URL                     = "https://app.infisical.com/api"
 	DEFAULT_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 )
+
+var ErrContextCanceled = errors.New("context canceled")
+var ErrContextDeadlineExceeded error = context.DeadlineExceeded

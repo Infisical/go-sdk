@@ -1,10 +1,12 @@
 package util
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/go-resty/resty/v2"
@@ -91,5 +93,13 @@ func TryParseErrorBody(res *resty.Response) string {
 	}
 
 	return errorResponse.Message
+}
 
+func SleepWithContext(ctx context.Context, duration time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(duration):
+		return nil
+	}
 }
