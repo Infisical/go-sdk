@@ -24,7 +24,7 @@ func CallRenewAccessToken(httpClient *resty.Client, request RenewAccessTokenRequ
 	}
 
 	if response.IsError() {
-		return responseData, errors.NewAPIError(callRenewAccessToken, response)
+		return responseData, errors.NewAPIErrorWithResponse(callRenewAccessToken, response)
 	}
 
 	return responseData, nil

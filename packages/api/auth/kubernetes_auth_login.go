@@ -24,7 +24,7 @@ func CallKubernetesAuthLogin(httpClient *resty.Client, request KubernetesAuthLog
 	}
 
 	if response.IsError() {
-		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(callKubernetesAuthLoginOperation, response)
+		return MachineIdentityAuthLoginResponse{}, errors.NewAPIErrorWithResponse(callKubernetesAuthLoginOperation, response)
 	}
 
 	return responseData, nil

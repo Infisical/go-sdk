@@ -24,7 +24,7 @@ func CallOidcAuthLogin(httpClient *resty.Client, request OidcAuthLoginRequest) (
 	}
 
 	if response.IsError() {
-		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(callOidcAuthLoginOperation, response)
+		return MachineIdentityAuthLoginResponse{}, errors.NewAPIErrorWithResponse(callOidcAuthLoginOperation, response)
 	}
 
 	return responseData, nil

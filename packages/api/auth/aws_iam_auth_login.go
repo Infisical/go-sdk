@@ -24,7 +24,7 @@ func CallAWSIamAuthLogin(httpClient *resty.Client, request AwsIamAuthLoginReques
 	}
 
 	if response.IsError() {
-		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(callAWSIamAuthLoginOperation, response)
+		return MachineIdentityAuthLoginResponse{}, errors.NewAPIErrorWithResponse(callAWSIamAuthLoginOperation, response)
 	}
 
 	return responseData, nil

@@ -9,11 +9,11 @@ import (
 
 // APIError represents an error response from the API
 type APIError struct {
-	Operation    string  `json:"operation"`
-	Method       string  `json:"method"`
-	URL          string  `json:"url"`
-	StatusCode   int     `json:"statusCode"`
-	ErrorMessage *string `json:"message,omitempty"`
+	Operation    string `json:"operation"`
+	Method       string `json:"method"`
+	URL          string `json:"url"`
+	StatusCode   int    `json:"statusCode"`
+	ErrorMessage string `json:"message,omitempty"`
 }
 
 func (e *APIError) Error() string {
@@ -25,8 +25,8 @@ func (e *APIError) Error() string {
 		e.StatusCode,
 	)
 
-	if e.ErrorMessage != nil {
-		return fmt.Sprintf("%s Error: %s", msg, *e.ErrorMessage)
+	if e.ErrorMessage != "" {
+		return fmt.Sprintf("%s [message=\"%s\"]", msg, e.ErrorMessage)
 
 	}
 
@@ -50,6 +50,6 @@ func NewAPIErrorWithResponse(operation string, res *resty.Response) error {
 		Method:       res.Request.Method,
 		URL:          res.Request.URL,
 		StatusCode:   res.StatusCode(),
-		ErrorMessage: &errorMessage,
+		ErrorMessage: errorMessage,
 	}
 }

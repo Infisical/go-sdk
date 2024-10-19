@@ -70,12 +70,12 @@ But if the status code is 500, there may not be a body. if there is, it will be 
 */
 func TryParseErrorBody(res *resty.Response) string {
 	if res == nil || !res.IsError() {
-		return "No Error Message"
+		return ""
 	}
 
 	body := res.String()
 	if body == "" {
-		return "No Error Message"
+		return ""
 	}
 
 	type ErrorResponse struct {
@@ -87,7 +87,7 @@ func TryParseErrorBody(res *resty.Response) string {
 	err := json.Unmarshal([]byte(body), &errorResponse)
 
 	if err != nil {
-		return "No Error Message"
+		return ""
 	}
 
 	return errorResponse.Message

@@ -24,7 +24,7 @@ func CallGCPAuthLogin(httpClient *resty.Client, request GCPAuthLoginRequest) (cr
 	}
 
 	if response.IsError() {
-		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(callGCPAuthLoginOperation, response)
+		return MachineIdentityAuthLoginResponse{}, errors.NewAPIErrorWithResponse(callGCPAuthLoginOperation, response)
 	}
 
 	return responseData, nil

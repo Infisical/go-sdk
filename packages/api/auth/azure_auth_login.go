@@ -24,7 +24,7 @@ func CallAzureAuthLogin(httpClient *resty.Client, request AzureAuthLoginRequest)
 	}
 
 	if response.IsError() {
-		return MachineIdentityAuthLoginResponse{}, errors.NewAPIError(azureAuthLoginOperation, response)
+		return MachineIdentityAuthLoginResponse{}, errors.NewAPIErrorWithResponse(azureAuthLoginOperation, response)
 	}
 
 	return responseData, nil

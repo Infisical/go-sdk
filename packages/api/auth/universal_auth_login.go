@@ -24,7 +24,7 @@ func CallUniversalAuthLogin(httpClient *resty.Client, request UniversalAuthLogin
 	}
 
 	if response.IsError() {
-		return responseData, errors.NewAPIError(callUniversalAuthLoginOperation, response)
+		return responseData, errors.NewAPIErrorWithResponse(callUniversalAuthLoginOperation, response)
 	}
 
 	return responseData, nil
