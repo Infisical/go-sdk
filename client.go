@@ -1,6 +1,8 @@
 package infisical
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -100,7 +102,7 @@ func (c *InfisicalClient) setPlainAccessToken(accessToken string) {
 	c.httpClient.SetAuthToken(accessToken)
 }
 
-func NewInfisicalClient(config Config) InfisicalClientInterface {
+func NewInfisicalClient(context context.Context, config Config) InfisicalClientInterface {
 	client := &InfisicalClient{}
 
 	setDefaults(&config)
@@ -112,7 +114,7 @@ func NewInfisicalClient(config Config) InfisicalClientInterface {
 	client.auth = &Auth{client: client}
 
 	if config.AutoTokenRefresh {
-		go client.handleTokenLifeCycle()
+		go client.handleTokenLifeCycle(context)
 	}
 
 	return client
@@ -149,7 +151,7 @@ func (c *InfisicalClient) Auth() AuthInterface {
 	return c.auth
 }
 
-func (c *InfisicalClient) handleTokenLifeCycle() {
+func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 	var warningPrinted = false
 	authStrategies := map[util.AuthMethod]func(cred interface{}) (credential MachineIdentityCredential, err error){
 		util.UNIVERSAL_AUTH: func(cred interface{}) (credential MachineIdentityCredential, err error) {
@@ -196,92 +198,106 @@ func (c *InfisicalClient) handleTokenLifeCycle() {
 	const RENEWAL_INTERVAL_BUFFER = 5
 
 	for {
-		c.mu.RLock()
-		config := c.config
-		authMethod := c.authMethod
-		tokenDetails := c.tokenDetails
-		clientCredential := c.credential
-		c.mu.RUnlock()
+		select {
+		case <-context.Done():
+			return // The context has been cancelled, clean up and return from the loop to stop the goroutine
+		default:
+			{
 
-		if config.AutoTokenRefresh && authMethod != "" && authMethod != util.ACCESS_TOKEN {
+				c.mu.RLock()
+				config := c.config
+				authMethod := c.authMethod
+				tokenDetails := c.tokenDetails
+				clientCredential := c.credential
+				c.mu.RUnlock()
 
-			if !config.SilentMode && !warningPrinted && tokenDetails.AccessTokenMaxTTL != 0 && tokenDetails.ExpiresIn != 0 {
-				if tokenDetails.AccessTokenMaxTTL < 60 || tokenDetails.ExpiresIn < 60 {
-					util.PrintWarning("Machine Identity access token TTL or max TTL is less than 60 seconds. This may cause excessive API calls, and you may be subject to rate-limits.")
-				}
-				warningPrinted = true
-			}
+				if config.AutoTokenRefresh && authMethod != "" && authMethod != util.ACCESS_TOKEN {
 
-			c.mu.RLock()
-
-			timeNow := time.Now()
-			timeSinceLastFetchSeconds := timeNow.Sub(c.lastFetchedTime).Seconds()
-			timeSinceFirstFetchSeconds := timeNow.Sub(c.firstFetchedTime).Seconds()
-			c.mu.RUnlock()
-
-			if timeSinceFirstFetchSeconds >= float64(tokenDetails.AccessTokenMaxTTL-RE_AUTHENTICATION_INTERVAL_BUFFER) {
-				newToken, err := authStrategies[c.authMethod](clientCredential)
-
-				if err != nil && !config.SilentMode {
-					util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
-				} else {
-					c.setAccessToken(newToken, c.credential, c.authMethod)
-					c.mu.Lock()
-					c.firstFetchedTime = time.Now()
-					c.mu.Unlock()
-				}
-
-			} else if timeSinceLastFetchSeconds >= float64(tokenDetails.ExpiresIn-RENEWAL_INTERVAL_BUFFER) {
-
-				renewedCredential, err := api.CallRenewAccessToken(c.httpClient, api.RenewAccessTokenRequest{AccessToken: tokenDetails.AccessToken})
-
-				if err != nil {
-					if !config.SilentMode {
-						util.PrintWarning(fmt.Sprintf("Failed to renew access token: %s\n\nAttempting to re-authenticate.", err.Error()))
+					if !config.SilentMode && !warningPrinted && tokenDetails.AccessTokenMaxTTL != 0 && tokenDetails.ExpiresIn != 0 {
+						if tokenDetails.AccessTokenMaxTTL < 60 || tokenDetails.ExpiresIn < 60 {
+							util.PrintWarning("Machine Identity access token TTL or max TTL is less than 60 seconds. This may cause excessive API calls, and you may be subject to rate-limits.")
+						}
+						warningPrinted = true
 					}
 
-					newToken, err := authStrategies[c.authMethod](clientCredential)
-					if err != nil && !config.SilentMode {
-						util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
+					c.mu.RLock()
+
+					timeNow := time.Now()
+					timeSinceLastFetchSeconds := timeNow.Sub(c.lastFetchedTime).Seconds()
+					timeSinceFirstFetchSeconds := timeNow.Sub(c.firstFetchedTime).Seconds()
+					c.mu.RUnlock()
+
+					if timeSinceFirstFetchSeconds >= float64(tokenDetails.AccessTokenMaxTTL-RE_AUTHENTICATION_INTERVAL_BUFFER) {
+						newToken, err := authStrategies[c.authMethod](clientCredential)
+
+						if err != nil && !config.SilentMode {
+							util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
+						} else {
+							c.setAccessToken(newToken, c.credential, c.authMethod)
+							c.mu.Lock()
+							c.firstFetchedTime = time.Now()
+							c.mu.Unlock()
+						}
+
+					} else if timeSinceLastFetchSeconds >= float64(tokenDetails.ExpiresIn-RENEWAL_INTERVAL_BUFFER) {
+
+						renewedCredential, err := api.CallRenewAccessToken(c.httpClient, api.RenewAccessTokenRequest{AccessToken: tokenDetails.AccessToken})
+
+						if err != nil {
+							if !config.SilentMode {
+								util.PrintWarning(fmt.Sprintf("Failed to renew access token: %s\n\nAttempting to re-authenticate.", err.Error()))
+							}
+
+							newToken, err := authStrategies[c.authMethod](clientCredential)
+							if err != nil && !config.SilentMode {
+								util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
+							} else {
+								c.setAccessToken(newToken, c.credential, c.authMethod)
+								c.mu.Lock()
+								c.firstFetchedTime = time.Now()
+								c.mu.Unlock()
+							}
+						} else {
+							c.setAccessToken(renewedCredential, clientCredential, authMethod)
+						}
+					}
+
+					c.mu.RLock()
+					nextAccessTokenExpiresInTime := c.lastFetchedTime.Add(time.Duration(tokenDetails.ExpiresIn*int64(time.Second)) - (5 * time.Second))
+					accessTokenMaxTTLExpiresInTime := c.firstFetchedTime.Add(time.Duration(tokenDetails.AccessTokenMaxTTL*int64(time.Second)) - (5 * time.Second))
+					expiresIn := time.Duration(c.tokenDetails.ExpiresIn * int64(time.Second))
+					c.mu.RUnlock()
+
+					if nextAccessTokenExpiresInTime.After(accessTokenMaxTTLExpiresInTime) {
+						// Calculate the sleep time
+						sleepTime := expiresIn - nextAccessTokenExpiresInTime.Sub(accessTokenMaxTTLExpiresInTime)
+
+						// Ensure we sleep for at least 1 second
+						if sleepTime < 1*time.Second {
+							sleepTime = time.Second * 1
+						}
+
+						if err := util.SleepWithContext(context, sleepTime); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
+							return
+						}
+
 					} else {
-						c.setAccessToken(newToken, c.credential, c.authMethod)
-						c.mu.Lock()
-						c.firstFetchedTime = time.Now()
-						c.mu.Unlock()
+						sleepTime := expiresIn - (5 * time.Second)
+
+						if sleepTime < time.Second {
+							sleepTime = time.Millisecond * 500
+						}
+
+						if err := util.SleepWithContext(context, sleepTime); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
+							return
+						}
 					}
 				} else {
-					c.setAccessToken(renewedCredential, clientCredential, authMethod)
+					if err := util.SleepWithContext(context, 1*time.Second); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
+						return
+					}
 				}
 			}
-
-			c.mu.RLock()
-			nextAccessTokenExpiresInTime := c.lastFetchedTime.Add(time.Duration(tokenDetails.ExpiresIn*int64(time.Second)) - (5 * time.Second))
-			accessTokenMaxTTLExpiresInTime := c.firstFetchedTime.Add(time.Duration(tokenDetails.AccessTokenMaxTTL*int64(time.Second)) - (5 * time.Second))
-			expiresIn := time.Duration(c.tokenDetails.ExpiresIn * int64(time.Second))
-			c.mu.RUnlock()
-
-			if nextAccessTokenExpiresInTime.After(accessTokenMaxTTLExpiresInTime) {
-				// Calculate the sleep time
-				sleepTime := expiresIn - nextAccessTokenExpiresInTime.Sub(accessTokenMaxTTLExpiresInTime)
-
-				// Ensure we sleep for at least 1 second
-				if sleepTime < 1*time.Second {
-					sleepTime = time.Second * 1
-				}
-
-				time.Sleep(sleepTime)
-			} else {
-				sleepTime := expiresIn - (5 * time.Second)
-
-				if sleepTime < time.Second {
-					sleepTime = time.Millisecond * 500
-				}
-
-				time.Sleep(sleepTime)
-			}
-		} else {
-			time.Sleep(1 * time.Second)
 		}
-
 	}
 }
