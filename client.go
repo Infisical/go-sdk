@@ -112,10 +112,7 @@ func NewInfisicalClient(config Config) InfisicalClientInterface {
 	client.auth = &Auth{client: client}
 
 	if config.AutoTokenRefresh {
-		var funcToRun = func() {
-			defer client.handleTokenLifeCycle()
-		}
-		go funcToRun()
+		go client.handleTokenLifeCycle()
 	}
 
 	return client
