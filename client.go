@@ -39,9 +39,9 @@ type InfisicalClientInterface interface {
 
 type Config struct {
 	SiteUrl          string `default:"https://app.infisical.com"`
-	UserAgent        string `default:"infisical-go-sdk"` // optional, we set this when instantiating the client in the k8s operator / cli.
-	AutoTokenRefresh bool   `default:"true"`             // defaults to trues
-	SilentMode       bool   `default:"false"`            // defaults to false
+	UserAgent        string `default:"infisical-go-sdk"` // User-Agent header to be used on requests sent by the SDK. Defaults to `infisical-go-sdk`. Do not modify this unless you have a reason to do so.
+	AutoTokenRefresh bool   `default:"true"`             // Wether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
+	SilentMode       bool   `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
 }
 
 func setDefaults(cfg *Config) {
@@ -112,7 +112,10 @@ func NewInfisicalClient(config Config) InfisicalClientInterface {
 	client.auth = &Auth{client: client}
 
 	if config.AutoTokenRefresh {
-		go client.handleTokenLifeCycle()
+		var funcToRun = func() {
+			defer client.handleTokenLifeCycle()
+		}
+		go funcToRun()
 	}
 
 	return client
@@ -261,9 +264,23 @@ func (c *InfisicalClient) handleTokenLifeCycle() {
 			c.mu.RUnlock()
 
 			if nextAccessTokenExpiresInTime.After(accessTokenMaxTTLExpiresInTime) {
-				time.Sleep(expiresIn - nextAccessTokenExpiresInTime.Sub(accessTokenMaxTTLExpiresInTime))
+				// Calculate the sleep time
+				sleepTime := expiresIn - nextAccessTokenExpiresInTime.Sub(accessTokenMaxTTLExpiresInTime)
+
+				// Ensure we sleep for at least 1 second
+				if sleepTime < 1*time.Second {
+					sleepTime = time.Second * 1
+				}
+
+				time.Sleep(sleepTime)
 			} else {
-				time.Sleep(expiresIn - (5 * time.Second))
+				sleepTime := expiresIn - (5 * time.Second)
+
+				if sleepTime < time.Second {
+					sleepTime = time.Millisecond * 500
+				}
+
+				time.Sleep(sleepTime)
 			}
 		} else {
 			time.Sleep(1 * time.Second)
