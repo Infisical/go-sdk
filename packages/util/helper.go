@@ -3,12 +3,12 @@ package util
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
 	"github.com/go-resty/resty/v2"
 	"github.com/infisical/go-sdk/packages/models"
 )
@@ -27,7 +27,7 @@ func AppendAPIEndpoint(siteUrl string) string {
 }
 
 func PrintWarning(message string) {
-	color.New(color.FgYellow).Fprintf(os.Stderr, "[Infisical] Warning: %v \n", message)
+	fmt.Fprintf(os.Stderr, "[Infisical] Warning: %v \n", message)
 }
 
 func EnsureUniqueSecretsByKey(secrets *[]models.Secret) {

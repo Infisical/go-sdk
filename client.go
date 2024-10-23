@@ -194,7 +194,7 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 		},
 	}
 
-	const RE_AUTHENTICATION_INTERVAL_BUFFER = 10
+	const RE_AUTHENTICATION_INTERVAL_BUFFER = 2
 	const RENEWAL_INTERVAL_BUFFER = 5
 
 	for {
@@ -240,14 +240,11 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 						}
 
 					} else if timeSinceLastFetchSeconds >= float64(tokenDetails.ExpiresIn-RENEWAL_INTERVAL_BUFFER) {
+						timeUntilMaxTTL := float64(tokenDetails.AccessTokenMaxTTL) - timeSinceFirstFetchSeconds
 
-						renewedCredential, err := api.CallRenewAccessToken(c.httpClient, api.RenewAccessTokenRequest{AccessToken: tokenDetails.AccessToken})
-
-						if err != nil {
-							if !config.SilentMode {
-								util.PrintWarning(fmt.Sprintf("Failed to renew access token: %s\n\nAttempting to re-authenticate.", err.Error()))
-							}
-
+						// Case 1: The time until the max TTL is less than the time until the next access token expiry
+						if timeUntilMaxTTL < float64(tokenDetails.ExpiresIn) {
+							// If renewing would exceed max TTL, directly re-authenticate
 							newToken, err := authStrategies[c.authMethod](clientCredential)
 							if err != nil && !config.SilentMode {
 								util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
@@ -257,8 +254,27 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 								c.firstFetchedTime = time.Now()
 								c.mu.Unlock()
 							}
+							// Case 2: The time until the max TTL is greater than the time until the next access token expiry
 						} else {
-							c.setAccessToken(renewedCredential, clientCredential, authMethod)
+							renewedCredential, err := api.CallRenewAccessToken(c.httpClient, api.RenewAccessTokenRequest{AccessToken: tokenDetails.AccessToken})
+
+							if err != nil {
+								if !config.SilentMode {
+									util.PrintWarning(fmt.Sprintf("Failed to renew access token: %s\n\nAttempting to re-authenticate.", err.Error()))
+								}
+
+								newToken, err := authStrategies[c.authMethod](clientCredential)
+								if err != nil && !config.SilentMode {
+									util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
+								} else {
+									c.setAccessToken(newToken, c.credential, c.authMethod)
+									c.mu.Lock()
+									c.firstFetchedTime = time.Now()
+									c.mu.Unlock()
+								}
+							} else {
+								c.setAccessToken(renewedCredential, clientCredential, authMethod)
+							}
 						}
 					}
 
