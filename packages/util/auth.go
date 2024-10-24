@@ -10,6 +10,8 @@ import (
 
 	credentials "cloud.google.com/go/iam/credentials/apiv1"
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/go-resty/resty/v2"
 	"google.golang.org/api/option"
 )
@@ -204,4 +206,32 @@ func GetAwsRegion() (string, error) {
 
 	return region, nil
 
+}
+
+func RetrieveAwsCredentials() (credentials aws.Credentials, region string, err error) {
+	presetAwsCfg, err := config.LoadDefaultConfig(context.TODO())
+
+	if err == nil && presetAwsCfg.Region != "" {
+		creds, err := presetAwsCfg.Credentials.Retrieve(context.TODO())
+		if err == nil {
+			return creds, presetAwsCfg.Region, nil
+		}
+	}
+
+	awsRegion, err := GetAwsRegion()
+	if err != nil {
+		return aws.Credentials{}, "", err
+	}
+
+	awsCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(awsRegion))
+	if err != nil {
+		return aws.Credentials{}, "", fmt.Errorf("unable to load SDK config, %v", err)
+	}
+
+	creds, err := awsCfg.Credentials.Retrieve(context.TODO())
+	if err != nil {
+		return aws.Credentials{}, "", fmt.Errorf("error retrieving credentials: %v", err)
+	}
+
+	return creds, awsRegion, nil
 }
