@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -9,7 +10,7 @@ import (
 
 func TestAWSAuthLogin(t *testing.T) {
 
-	client := infisical.NewInfisicalClient(infisical.Config{
+	client := infisical.NewInfisicalClient(context.Background(), infisical.Config{
 		SiteUrl: "https://c61b724baab4.ngrok.app",
 	})
 
