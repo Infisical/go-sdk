@@ -111,9 +111,9 @@ func NewInfisicalClient(context context.Context, config Config) InfisicalClientI
 	client.UpdateConfiguration(config) // set httpClient and config
 
 	// add interfaces here
-	client.secrets = &Secrets{client: client}
-	client.folders = &Folders{client: client}
-	client.auth = &Auth{client: client}
+	client.secrets = NewSecrets(client)
+	client.folders = NewFolders(client)
+	client.auth = NewAuth(client)
 	client.dynamicSecrets = NewDynamicSecrets(client)
 
 	if config.AutoTokenRefresh {
