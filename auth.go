@@ -16,7 +16,6 @@ import (
 	"github.com/infisical/go-sdk/packages/util"
 
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
-	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 type KubernetesAuthLoginOptions struct {
@@ -223,14 +222,9 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (credential MachineIdentityCre
 		identityId = os.Getenv(util.INFISICAL_AWS_IAM_AUTH_IDENTITY_ID_ENV_NAME)
 	}
 
-	awsRegion, err := util.GetAwsRegion()
+	awsCredentials, awsRegion, err := util.RetrieveAwsCredentials()
 	if err != nil {
 		return MachineIdentityCredential{}, err
-	}
-
-	awsCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(awsRegion))
-	if err != nil {
-		return MachineIdentityCredential{}, fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
 	// Prepare request for signing
@@ -245,17 +239,12 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (credential MachineIdentityCre
 	currentTime := time.Now().UTC()
 	req.Header.Add("X-Amz-Date", currentTime.Format("20060102T150405Z"))
 
-	credentials, err := awsCfg.Credentials.Retrieve(context.TODO())
-	if err != nil {
-		return MachineIdentityCredential{}, fmt.Errorf("error retrieving credentials: %v", err)
-	}
-
 	hashGenerator := sha256.New()
 	hashGenerator.Write([]byte(iamRequestBody))
 	payloadHash := fmt.Sprintf("%x", hashGenerator.Sum(nil))
 
 	signer := v4.NewSigner()
-	err = signer.SignHTTP(context.TODO(), credentials, req, payloadHash, "sts", awsRegion, time.Now())
+	err = signer.SignHTTP(context.TODO(), awsCredentials, req, payloadHash, "sts", awsRegion, time.Now())
 
 	if err != nil {
 		return MachineIdentityCredential{}, fmt.Errorf("error signing request: %v", err)
