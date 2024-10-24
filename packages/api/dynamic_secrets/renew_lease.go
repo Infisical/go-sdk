@@ -18,11 +18,11 @@ func CallRenewDynamicSecretLeaseV1(httpClient *resty.Client, request RenewDynami
 	res, err := req.Post("/v1/dynamic-secrets/leases/" + request.LeaseId)
 
 	if err != nil {
-		return RenewDynamicSecretLeaseV1Response{}, errors.NewRequestError(callGetDynamicSecretLeaseByIdV1Operation, err)
+		return RenewDynamicSecretLeaseV1Response{}, errors.NewRequestError(callRenewDynamicSecretLeaseV1Operation, err)
 	}
 
 	if res.IsError() {
-		return RenewDynamicSecretLeaseV1Response{}, errors.NewAPIErrorWithResponse(callGetDynamicSecretLeaseByIdV1Operation, res)
+		return RenewDynamicSecretLeaseV1Response{}, errors.NewAPIErrorWithResponse(callRenewDynamicSecretLeaseV1Operation, res)
 	}
 
 	return renewResponse, nil

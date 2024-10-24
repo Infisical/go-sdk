@@ -22,11 +22,11 @@ func CallListDynamicSecretLeaseV1(httpClient *resty.Client, request ListDynamicS
 	res, err := req.Get("/v1/dynamic-secrets/" + request.SecretName + "/leases")
 
 	if err != nil {
-		return ListDynamicSecretLeaseV1Response{}, errors.NewRequestError(callGetDynamicSecretLeaseByIdV1Operation, err)
+		return ListDynamicSecretLeaseV1Response{}, errors.NewRequestError(callListDynamicSecretLeaseV1Operation, err)
 	}
 
 	if res.IsError() {
-		return ListDynamicSecretLeaseV1Response{}, errors.NewAPIErrorWithResponse(callGetDynamicSecretLeaseByIdV1Operation, res)
+		return ListDynamicSecretLeaseV1Response{}, errors.NewAPIErrorWithResponse(callListDynamicSecretLeaseV1Operation, res)
 	}
 
 	return listResponse, nil

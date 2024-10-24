@@ -22,11 +22,11 @@ func CallListDynamicSecretsV1(httpClient *resty.Client, request ListDynamicSecre
 	res, err := req.Get("/v1/dynamic-secrets")
 
 	if err != nil {
-		return ListDynamicSecretsV1Response{}, errors.NewRequestError(callGetDynamicSecretByNameV1Operation, err)
+		return ListDynamicSecretsV1Response{}, errors.NewRequestError(callListDynamicSecretsV1Operation, err)
 	}
 
 	if res.IsError() {
-		return ListDynamicSecretsV1Response{}, errors.NewAPIErrorWithResponse(callGetDynamicSecretByNameV1Operation, res)
+		return ListDynamicSecretsV1Response{}, errors.NewAPIErrorWithResponse(callListDynamicSecretsV1Operation, res)
 	}
 
 	return listDynamicSecretResponse, nil
