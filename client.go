@@ -27,9 +27,10 @@ type InfisicalClient struct {
 	httpClient *resty.Client
 	config     Config
 
-	secrets SecretsInterface
-	folders FoldersInterface
-	auth    AuthInterface
+	secrets        SecretsInterface
+	folders        FoldersInterface
+	auth           AuthInterface
+	dynamicSecrets DynamicSecretsInterface
 }
 
 type InfisicalClientInterface interface {
@@ -37,6 +38,7 @@ type InfisicalClientInterface interface {
 	Secrets() SecretsInterface
 	Folders() FoldersInterface
 	Auth() AuthInterface
+	DynamicSecrets() DynamicSecretsInterface
 }
 
 type Config struct {
@@ -109,9 +111,10 @@ func NewInfisicalClient(context context.Context, config Config) InfisicalClientI
 	client.UpdateConfiguration(config) // set httpClient and config
 
 	// add interfaces here
-	client.secrets = &Secrets{client: client}
-	client.folders = &Folders{client: client}
-	client.auth = &Auth{client: client}
+	client.secrets = NewSecrets(client)
+	client.folders = NewFolders(client)
+	client.auth = NewAuth(client)
+	client.dynamicSecrets = NewDynamicSecrets(client)
 
 	if config.AutoTokenRefresh {
 		go client.handleTokenLifeCycle(context)
@@ -149,6 +152,10 @@ func (c *InfisicalClient) Folders() FoldersInterface {
 
 func (c *InfisicalClient) Auth() AuthInterface {
 	return c.auth
+}
+
+func (c *InfisicalClient) DynamicSecrets() DynamicSecretsInterface {
+	return c.dynamicSecrets
 }
 
 func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
