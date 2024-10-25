@@ -19,12 +19,16 @@ type DynamicSecretsInterface interface {
 	Leases() DynamicSecretLeaseInterface
 }
 
+type DynamicSecretLeases struct {
+	client *InfisicalClient
+}
+
 type DynamicSecretLeaseInterface interface {
 	List(options ListDynamicSecretLeasesOptions) ([]models.DynamicSecretLease, error)
 	Create(options CreateDynamicSecretLeaseOptions) (map[string]any, models.DynamicSecret, models.DynamicSecretLease, error)
-	GetById(options GetDynamicSecretLeaseByIdOptions) (models.DynamicSecretLeaseWithDynamicSecret, error)
-	DeleteById(options DeleteDynamicSecretLeaseOptions) (models.DynamicSecretLease, error)
-	RenewById(options RenewDynamicSecretLeaseOptions) (models.DynamicSecretLease, error)
+	Retrieve(options GetDynamicSecretLeaseByIdOptions) (models.DynamicSecretLeaseWithDynamicSecret, error)
+	Delete(options DeleteDynamicSecretLeaseOptions) (models.DynamicSecretLease, error)
+	Renew(options RenewDynamicSecretLeaseOptions) (models.DynamicSecretLease, error)
 }
 
 type DynamicSecrets struct {
@@ -56,10 +60,6 @@ func (f *DynamicSecrets) Leases() DynamicSecretLeaseInterface {
 	return f.leases
 }
 
-type DynamicSecretLeases struct {
-	client *InfisicalClient
-}
-
 func (f *DynamicSecretLeases) List(options ListDynamicSecretLeasesOptions) ([]models.DynamicSecretLease, error) {
 	res, err := api.CallListDynamicSecretLeaseV1(f.client.httpClient, options)
 
@@ -80,7 +80,7 @@ func (f *DynamicSecretLeases) Create(options CreateDynamicSecretLeaseOptions) (m
 	return res.Data, res.DynamicSecret, res.Lease, nil
 }
 
-func (f *DynamicSecretLeases) GetById(options GetDynamicSecretLeaseByIdOptions) (models.DynamicSecretLeaseWithDynamicSecret, error) {
+func (f *DynamicSecretLeases) Retrieve(options GetDynamicSecretLeaseByIdOptions) (models.DynamicSecretLeaseWithDynamicSecret, error) {
 	res, err := api.CallGetByDynamicSecretByIdLeaseV1(f.client.httpClient, options)
 
 	if err != nil {
@@ -90,7 +90,7 @@ func (f *DynamicSecretLeases) GetById(options GetDynamicSecretLeaseByIdOptions) 
 	return res.Lease, nil
 }
 
-func (f *DynamicSecretLeases) DeleteById(options DeleteDynamicSecretLeaseOptions) (models.DynamicSecretLease, error) {
+func (f *DynamicSecretLeases) Delete(options DeleteDynamicSecretLeaseOptions) (models.DynamicSecretLease, error) {
 	res, err := api.CallDeleteDynamicSecretLeaseV1(f.client.httpClient, options)
 
 	if err != nil {
@@ -100,7 +100,7 @@ func (f *DynamicSecretLeases) DeleteById(options DeleteDynamicSecretLeaseOptions
 	return res.Lease, nil
 }
 
-func (f *DynamicSecretLeases) RenewById(options RenewDynamicSecretLeaseOptions) (models.DynamicSecretLease, error) {
+func (f *DynamicSecretLeases) Renew(options RenewDynamicSecretLeaseOptions) (models.DynamicSecretLease, error) {
 	res, err := api.CallRenewDynamicSecretLeaseV1(f.client.httpClient, options)
 
 	if err != nil {
