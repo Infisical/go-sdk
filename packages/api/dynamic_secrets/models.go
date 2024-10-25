@@ -55,10 +55,10 @@ type GetDynamicSecretLeaseByIdV1Response struct {
 }
 
 type ListDynamicSecretLeaseV1Request struct {
-	SecretName      string `json:"secretName"`
-	ProjectSlug     string `json:"projectSlug"`
-	SecretPath      string `json:"path"`
-	EnvironmentSlug string `json:"environmentSlug"`
+	DynamicSecretName string `json:"secretName"`
+	ProjectSlug       string `json:"projectSlug"`
+	SecretPath        string `json:"path"`
+	EnvironmentSlug   string `json:"environmentSlug"`
 }
 
 type ListDynamicSecretLeaseV1Response struct {
@@ -66,10 +66,10 @@ type ListDynamicSecretLeaseV1Response struct {
 }
 
 type GetDynamicSecretByNameV1Request struct {
-	SecretName      string `json:"secretName"`
-	ProjectSlug     string `json:"projectSlug"`
-	SecretPath      string `json:"path"`
-	EnvironmentSlug string `json:"environmentSlug"`
+	DynamicSecretName string `json:"secretName"`
+	ProjectSlug       string `json:"projectSlug"`
+	SecretPath        string `json:"path"`
+	EnvironmentSlug   string `json:"environmentSlug"`
 }
 
 type GetDynamicSecretByNameV1Response struct {
