@@ -19,7 +19,7 @@ func CallListDynamicSecretLeaseV1(httpClient *resty.Client, request ListDynamicS
 			"path":            request.SecretPath,
 		})
 
-	res, err := req.Get("/v1/dynamic-secrets/" + request.SecretName + "/leases")
+	res, err := req.Get("/v1/dynamic-secrets/" + request.DynamicSecretName + "/leases")
 
 	if err != nil {
 		return ListDynamicSecretLeaseV1Response{}, errors.NewRequestError(callListDynamicSecretLeaseV1Operation, err)
