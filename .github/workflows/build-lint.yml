@@ -1,0 +1,28 @@
+name: Build and Lint
+
+# Basic concurrency per branch
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+on:
+    pull_request:
+        types: [opened, synchronize]
+
+jobs:
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+            - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+              with:
+                  go-version-file: "go.mod"
+                  cache: false
+            - run: go mod download
+            - run: go build -v .
+            - name: Run linters
+              uses: golangci/golangci-lint-action@5f1fec7010f6ae3b84ea4f7b2129beb8639b564f # v3.5.0
+              with:
+                  version: latest
