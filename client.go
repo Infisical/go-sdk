@@ -109,7 +109,6 @@ func (c *InfisicalClient) setPlainAccessToken(accessToken string) {
 
 func NewInfisicalClient(context context.Context, config Config) InfisicalClientInterface {
 	client := &InfisicalClient{}
-
 	setDefaults(&config)
 	client.UpdateConfiguration(config) // set httpClient and config
 
