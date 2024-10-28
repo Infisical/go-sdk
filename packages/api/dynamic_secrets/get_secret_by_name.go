@@ -18,7 +18,7 @@ func CallGetDynamicSecretByNameV1(httpClient *resty.Client, request GetDynamicSe
 		"path":            request.SecretPath,
 	})
 
-	res, err := req.Get("/v1/dynamic-secrets/" + request.SecretName)
+	res, err := req.Get("/v1/dynamic-secrets/" + request.DynamicSecretName)
 
 	if err != nil {
 		return GetDynamicSecretByNameV1Response{}, errors.NewRequestError(callGetDynamicSecretByNameV1Operation, err)
