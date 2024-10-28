@@ -2,6 +2,8 @@ package infisical
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"reflect"
@@ -43,6 +45,7 @@ type InfisicalClientInterface interface {
 
 type Config struct {
 	SiteUrl          string `default:"https://app.infisical.com"`
+	CaCertificate    string `default:""`
 	UserAgent        string `default:"infisical-go-sdk"` // User-Agent header to be used on requests sent by the SDK. Defaults to `infisical-go-sdk`. Do not modify this unless you have a reason to do so.
 	AutoTokenRefresh bool   `default:"true"`             // Wether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
 	SilentMode       bool   `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
@@ -135,10 +138,29 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 		c.httpClient = resty.New().
 			SetHeader("User-Agent", config.UserAgent).
 			SetBaseURL(config.SiteUrl)
+
 	} else {
 		c.httpClient.
 			SetHeader("User-Agent", config.UserAgent).
 			SetBaseURL(config.SiteUrl)
+	}
+
+	if config.CaCertificate != "" {
+		caCertPool, err := x509.SystemCertPool()
+		if err != nil && !config.SilentMode {
+			util.PrintWarning(fmt.Sprintf("failed to load system root CA pool: %v", err))
+		}
+
+		if ok := caCertPool.AppendCertsFromPEM([]byte(config.CaCertificate)); !ok && !config.SilentMode {
+			util.PrintWarning("failed to append CA certificate")
+		}
+
+		// Create a TLS configuration with the custom CA pool
+		tlsConfig := &tls.Config{
+			RootCAs: caCertPool,
+		}
+
+		c.httpClient.SetTLSClientConfig(tlsConfig)
 	}
 }
 
