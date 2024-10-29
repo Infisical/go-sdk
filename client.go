@@ -119,6 +119,7 @@ func NewInfisicalClient(context context.Context, config Config) InfisicalClientI
 	client.folders = NewFolders(client)
 	client.auth = NewAuth(client)
 	client.dynamicSecrets = NewDynamicSecrets(client)
+	client.kms = NewKms(client)
 
 	if config.AutoTokenRefresh {
 		go client.handleTokenLifeCycle(context)
