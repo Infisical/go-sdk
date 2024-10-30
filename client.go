@@ -33,6 +33,7 @@ type InfisicalClient struct {
 	folders        FoldersInterface
 	auth           AuthInterface
 	dynamicSecrets DynamicSecretsInterface
+	kms            KmsInterface
 }
 
 type InfisicalClientInterface interface {
@@ -41,6 +42,7 @@ type InfisicalClientInterface interface {
 	Folders() FoldersInterface
 	Auth() AuthInterface
 	DynamicSecrets() DynamicSecretsInterface
+	Kms() KmsInterface
 }
 
 type Config struct {
@@ -117,6 +119,7 @@ func NewInfisicalClient(context context.Context, config Config) InfisicalClientI
 	client.folders = NewFolders(client)
 	client.auth = NewAuth(client)
 	client.dynamicSecrets = NewDynamicSecrets(client)
+	client.kms = NewKms(client)
 
 	if config.AutoTokenRefresh {
 		go client.handleTokenLifeCycle(context)
@@ -176,6 +179,10 @@ func (c *InfisicalClient) Auth() AuthInterface {
 
 func (c *InfisicalClient) DynamicSecrets() DynamicSecretsInterface {
 	return c.dynamicSecrets
+}
+
+func (c *InfisicalClient) Kms() KmsInterface {
+	return c.kms
 }
 
 func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
