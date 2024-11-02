@@ -137,7 +137,7 @@ func TestAWSAuthLogin(t *testing.T) {
 			fmt.Printf("Access Token Auth Error: %v\n", err)
 		}
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(10 * time.Second)
 
 	}
 
