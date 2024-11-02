@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	infisical "github.com/infisical/go-sdk"
 )
@@ -28,7 +29,7 @@ func CallListSecrets(client infisical.InfisicalClientInterface) error {
 	return nil
 }
 
-func AwsIAmLogin() {
+func AwsIAmLogin() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -42,11 +43,13 @@ func AwsIAmLogin() {
 	err = CallListSecrets(client)
 
 	if err != nil {
-		fmt.Printf("List Secrets Error: %v\n", err)
+		return err
 	}
+
+	return nil
 }
 
-func UniversalAuthLogin() {
+func UniversalAuthLogin() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -60,11 +63,13 @@ func UniversalAuthLogin() {
 	err = CallListSecrets(client)
 
 	if err != nil {
-		fmt.Printf("List Secrets Error: %v\n", err)
+		return err
 	}
+
+	return nil
 }
 
-func AccessTokenLogin() {
+func AccessTokenLogin() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -75,16 +80,35 @@ func AccessTokenLogin() {
 	err := CallListSecrets(client)
 
 	if err != nil {
-		fmt.Printf("List Secrets Error: %v\n", err)
+		return err
 	}
+
+	return nil
 }
 
 func TestAWSAuthLogin(t *testing.T) {
 
-	AwsIAmLogin()
+	for {
+		fmt.Printf("Testing AWS Auth\n")
+		err := AwsIAmLogin()
+		if err != nil {
+			fmt.Printf("AWS Auth Error: %v\n", err)
+		}
 
-	UniversalAuthLogin()
+		fmt.Printf("Testing Universal Auth\n")
+		err = UniversalAuthLogin()
+		if err != nil {
+			fmt.Printf("Universal Auth Error: %v\n", err)
+		}
 
-	AccessTokenLogin()
+		fmt.Printf("Testing Access Token Auth\n")
+		err = AccessTokenLogin()
+		if err != nil {
+			fmt.Printf("Access Token Auth Error: %v\n", err)
+		}
+
+		time.Sleep(5 * time.Second)
+
+	}
 
 }

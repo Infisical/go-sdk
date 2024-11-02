@@ -24,18 +24,19 @@ func CallListSecretsAzure(client infisical.InfisicalClientInterface) error {
 // ubuntu@74.243.217.7 /// normal password uppercase
 
 func TestAzureLogin(t *testing.T) {
-
 	client := infisical.NewInfisicalClient(context.Background(), infisical.Config{})
+	for {
 
-	_, err := client.Auth().AzureAuthLogin(AZURE_AUTH_IDENTITY_ID, "")
-	if err != nil {
-		fmt.Printf("Azure Auth Error: %v\n", err)
-	}
+		_, err := client.Auth().AzureAuthLogin(AZURE_AUTH_IDENTITY_ID, "")
+		if err != nil {
+			fmt.Printf("Azure Auth Error: %v\n", err)
+		}
 
-	err = CallListSecretsAzure(client)
+		err = CallListSecretsAzure(client)
 
-	if err != nil {
-		fmt.Printf("List Secrets Error: %v\n", err)
+		if err != nil {
+			fmt.Printf("List Secrets Error: %v\n", err)
+		}
 	}
 
 }
