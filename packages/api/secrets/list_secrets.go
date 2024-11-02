@@ -35,8 +35,6 @@ func CallListSecretsWithETagV3(httpClient *resty.Client, request ListSecretsV3Ra
 		}
 	}
 
-	fmt.Printf("ETAG: %s\n", request.CurrentETag)
-
 	res, err := httpClient.R().
 		SetResult(&secretsResponse).
 		SetHeader("if-none-match", request.CurrentETag).
