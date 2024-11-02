@@ -33,6 +33,7 @@ func TestAzureLogin(t *testing.T) {
 		if err != nil {
 			fmt.Printf("Azure Auth Error: %v\n", err)
 		}
+		time.Sleep(1 * time.Second)
 
 		fmt.Printf("Azure Auth listing secrets\n")
 		err = CallListSecretsAzure(client)

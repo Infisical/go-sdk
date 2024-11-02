@@ -115,18 +115,21 @@ func TestAWSAuthLogin(t *testing.T) {
 		if err != nil {
 			fmt.Printf("AWS Auth Error: %v\n", err)
 		}
+		time.Sleep(1 * time.Second)
 
 		fmt.Printf("Testing GCP Auth\n")
 		err = GCPAuthLogin()
 		if err != nil {
 			fmt.Printf("GCP Auth Error: %v\n", err)
 		}
+		time.Sleep(1 * time.Second)
 
 		fmt.Printf("Testing Universal Auth\n")
 		err = UniversalAuthLogin()
 		if err != nil {
 			fmt.Printf("Universal Auth Error: %v\n", err)
 		}
+		time.Sleep(1 * time.Second)
 
 		fmt.Printf("Testing Access Token Auth\n")
 		err = AccessTokenLogin()
