@@ -8,14 +8,11 @@ import (
 	infisical "github.com/infisical/go-sdk"
 )
 
-const AWS_AUTH_IDENTITY_ID = "99c9c780-39c5-413d-8e78-3c5d3a113a91"
+const AZURE_AUTH_IDENTITY_ID = "ed99db9d-5793-476c-8702-ee040669ae0d"
 
-const (
-	UNIVERSAL_AUTH_CLIENT_ID     = "ee2a5906-d93e-42d2-8649-d9c047053271"
-	UNIVERSAL_AUTH_CLIENT_SECRET = "a8769cab25eced271b27fb42755e890d7186c4cc0bd3adb6b739966a0da3ab38"
-)
+// ubuntu@74.243.217.7 /// normal password uppercase
 
-func TestAWSAuthLogin(t *testing.T) {
+func TestAzureLogin(t *testing.T) {
 
 	client := infisical.NewInfisicalClient(context.Background(), infisical.Config{})
 
