@@ -58,6 +58,9 @@ func GetAzureMetadataToken(httpClient *resty.Client, customResource string) (str
 	}
 
 	if response.IsError() {
+
+		fmt.Printf("Response body: %s\n", response.String())
+
 		return "", fmt.Errorf("GetAzureMetadataToken: Unsuccessful response [%v %v] [status-code=%v] [Error: %s]", response.Request.Method, response.Request.URL, response.StatusCode(), TryParseErrorBody(response))
 	}
 
