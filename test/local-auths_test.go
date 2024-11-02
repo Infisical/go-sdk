@@ -34,7 +34,9 @@ func AwsIAmLogin() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	client := infisical.NewInfisicalClient(ctx, infisical.Config{})
+	client := infisical.NewInfisicalClient(ctx, infisical.Config{
+		SiteUrl: "https://bab7-2600-4808-58b7-cc00-2cb5-819d-e111-706e.ngrok-free.app",
+	})
 
 	_, err := client.Auth().AwsIamAuthLogin(AWS_AUTH_IDENTITY_ID)
 	if err != nil {
