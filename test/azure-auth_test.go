@@ -16,14 +16,9 @@ func TestAzureLogin(t *testing.T) {
 
 	client := infisical.NewInfisicalClient(context.Background(), infisical.Config{})
 
-	_, err := client.Auth().AwsIamAuthLogin(AWS_AUTH_IDENTITY_ID)
+	_, err := client.Auth().AzureAuthLogin(AZURE_AUTH_IDENTITY_ID, "https://management.azure.com/")
 	if err != nil {
-		fmt.Printf("AWS Auth Error: %v\n", err)
-	}
-
-	_, err = client.Auth().UniversalAuthLogin(UNIVERSAL_AUTH_CLIENT_ID, UNIVERSAL_AUTH_CLIENT_SECRET)
-	if err != nil {
-		fmt.Printf("Universal Auth Error: %v\n", err)
+		fmt.Printf("Azure Auth Error: %v\n", err)
 	}
 
 }
