@@ -1,4 +1,4 @@
-name: Build and Lint
+name: Test OIDC
 
 on:
     push:
@@ -17,4 +17,4 @@ jobs:
                   method: "oidc"
                   env-slug: "dev"
                   project-slug: "identity-auth-tests-psr-u"
-                  identity-id: "d3f3513a-de88-4313-91f1-e25e6b75cef6"
+                  identity-id: "d3f3513a-de88-4313-91f1-e25e6b75cef6ffff"
