@@ -10,6 +10,7 @@ import (
 )
 
 const AWS_AUTH_IDENTITY_ID = "99c9c780-39c5-413d-8e78-3c5d3a113a91"
+const GCP_AUTH_IDENTITY_ID = "d1cd205a-716e-4261-8623-476a8436422c"
 
 const (
 	UNIVERSAL_AUTH_CLIENT_ID     = "ee2a5906-d93e-42d2-8649-d9c047053271"
@@ -86,6 +87,26 @@ func AccessTokenLogin() error {
 	return nil
 }
 
+func GCPAuthLogin() error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	client := infisical.NewInfisicalClient(ctx, infisical.Config{})
+
+	_, err := client.Auth().GcpIamAuthLogin(GCP_AUTH_IDENTITY_ID, "./gcp-service-account.json")
+	if err != nil {
+		fmt.Printf("GCP Auth Error: %v\n", err)
+	}
+
+	err = CallListSecrets(client)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func TestAWSAuthLogin(t *testing.T) {
 
 	for {
@@ -93,6 +114,12 @@ func TestAWSAuthLogin(t *testing.T) {
 		err := AwsIAmLogin()
 		if err != nil {
 			fmt.Printf("AWS Auth Error: %v\n", err)
+		}
+
+		fmt.Printf("Testing GCP Auth\n")
+		err = GCPAuthLogin()
+		if err != nil {
+			fmt.Printf("GCP Auth Error: %v\n", err)
 		}
 
 		fmt.Printf("Testing Universal Auth\n")

@@ -21,3 +21,4 @@
 go.work
 go.work.sum
 .DS_Store
+test/gcp-service-account.json
