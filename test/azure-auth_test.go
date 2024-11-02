@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	infisical "github.com/infisical/go-sdk"
 )
@@ -27,16 +28,20 @@ func TestAzureLogin(t *testing.T) {
 	client := infisical.NewInfisicalClient(context.Background(), infisical.Config{})
 	for {
 
+		fmt.Printf("Azure Auth logging in\n")
 		_, err := client.Auth().AzureAuthLogin(AZURE_AUTH_IDENTITY_ID, "")
 		if err != nil {
 			fmt.Printf("Azure Auth Error: %v\n", err)
 		}
 
+		fmt.Printf("Azure Auth listing secrets\n")
 		err = CallListSecretsAzure(client)
 
 		if err != nil {
 			fmt.Printf("List Secrets Error: %v\n", err)
 		}
+
+		time.Sleep(5 * time.Second)
 	}
 
 }
