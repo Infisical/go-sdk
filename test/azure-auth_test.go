@@ -16,7 +16,7 @@ func TestAzureLogin(t *testing.T) {
 
 	client := infisical.NewInfisicalClient(context.Background(), infisical.Config{})
 
-	_, err := client.Auth().AzureAuthLogin(AZURE_AUTH_IDENTITY_ID, "https://management.azure.com/")
+	_, err := client.Auth().AzureAuthLogin(AZURE_AUTH_IDENTITY_ID, "")
 	if err != nil {
 		fmt.Printf("Azure Auth Error: %v\n", err)
 	}
