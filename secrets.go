@@ -9,6 +9,7 @@ import (
 )
 
 type ListSecretsOptions = api.ListSecretsV3RawRequest
+type ListSecretsWithETagOptions = api.ListSecretsV3RawWithETagRequest
 type RetrieveSecretOptions = api.RetrieveSecretV3RawRequest
 type UpdateSecretOptions = api.UpdateSecretV3RawRequest
 type CreateSecretOptions = api.CreateSecretV3RawRequest
@@ -16,6 +17,7 @@ type DeleteSecretOptions = api.DeleteSecretV3RawRequest
 
 type SecretsInterface interface {
 	List(options ListSecretsOptions) ([]models.Secret, error)
+	ListWithETag(options ListSecretsWithETagOptions) (models.ListSecretsWithETagResult, error)
 	Retrieve(options RetrieveSecretOptions) (models.Secret, error)
 	Update(options UpdateSecretOptions) (models.Secret, error)
 	Create(options CreateSecretOptions) (models.Secret, error)
@@ -62,6 +64,51 @@ func (s *Secrets) List(options ListSecretsOptions) ([]models.Secret, error) {
 	}
 
 	return util.SortSecretsByKeys(secrets), nil
+}
+
+func (s *Secrets) ListWithETag(options ListSecretsWithETagOptions) (models.ListSecretsWithETagResult, error) {
+	res, etag, isModified, err := api.CallListSecretsWithETagV3(s.client.httpClient, options)
+
+	if err != nil {
+		return models.ListSecretsWithETagResult{}, err
+	}
+
+	if options.Recursive {
+		util.EnsureUniqueSecretsByKey(&res.Secrets)
+	}
+
+	secrets := append([]models.Secret(nil), res.Secrets...) // Clone main secrets slice, we will modify this if imports are enabled
+	if options.IncludeImports {
+
+		// Append secrets from imports
+		for _, importBlock := range res.Imports {
+			for _, importSecret := range importBlock.Secrets {
+				// Only append the secret if it is not already in the list, imports take precedence
+				if !util.ContainsSecret(secrets, importSecret.SecretKey) {
+					secrets = append(secrets, importSecret)
+				}
+			}
+		}
+	}
+
+	if options.AttachToProcessEnv {
+		for _, secret := range secrets {
+			// Only set the environment variable if it is not already set
+			if os.Getenv(secret.SecretKey) == "" {
+				os.Setenv(secret.SecretKey, secret.SecretValue)
+			}
+		}
+
+	}
+
+	sortedSecrets := util.SortSecretsByKeys(secrets)
+
+	return models.ListSecretsWithETagResult{
+		Secrets:    sortedSecrets,
+		ETag:       etag,
+		IsModified: isModified,
+	}, nil
+
 }
 
 func (s *Secrets) Retrieve(options RetrieveSecretOptions) (models.Secret, error) {

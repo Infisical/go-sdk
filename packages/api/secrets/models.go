@@ -16,6 +16,19 @@ type ListSecretsV3RawRequest struct {
 	SecretPath             string `json:"secretPath,omitempty"`
 }
 
+type ListSecretsV3RawWithETagRequest struct {
+	AttachToProcessEnv bool   `json:"-"`
+	CurrentETag        string `json:"-"`
+	// ProjectId and ProjectSlug are used to fetch secrets from the project. Only one of them is required.
+	ProjectID              string `json:"workspaceId,omitempty"`
+	ProjectSlug            string `json:"workspaceSlug,omitempty"`
+	Environment            string `json:"environment"`
+	ExpandSecretReferences bool   `json:"expandSecretReferences"`
+	IncludeImports         bool   `json:"include_imports"`
+	Recursive              bool   `json:"recursive"`
+	SecretPath             string `json:"secretPath,omitempty"`
+}
+
 type ListSecretsV3RawResponse struct {
 	Secrets []models.Secret       `json:"secrets"`
 	Imports []models.SecretImport `json:"imports"`
@@ -83,4 +96,10 @@ type DeleteSecretV3RawRequest struct {
 
 type DeleteSecretV3RawResponse struct {
 	Secret models.Secret `json:"secret"`
+}
+
+type ListSecretsWithETagResponse struct {
+	Secrets    []models.Secret
+	ETag       string
+	IsModified bool
 }

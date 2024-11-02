@@ -12,6 +12,12 @@ type Secret struct {
 	SecretPath    string `json:"secretPath,omitempty"`
 }
 
+type ListSecretsWithETagResult struct {
+	Secrets    []Secret
+	ETag       string
+	IsModified bool
+}
+
 type SecretImport struct {
 	SecretPath  string   `json:"secretPath"`
 	Environment string   `json:"environment"`
