@@ -15,7 +15,7 @@ func CallRenewDynamicSecretLeaseV1(httpClient *resty.Client, request RenewDynami
 		SetResult(&renewResponse).
 		SetBody(request)
 
-	res, err := req.Post("/v1/dynamic-secrets/leases/" + request.LeaseId)
+	res, err := req.Post("/v1/dynamic-secrets/leases/" + request.LeaseId + "/renew")
 
 	if err != nil {
 		return RenewDynamicSecretLeaseV1Response{}, errors.NewRequestError(callRenewDynamicSecretLeaseV1Operation, err)
