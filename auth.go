@@ -27,6 +27,7 @@ type KubernetesAuthLoginOptions struct {
 
 type AuthInterface interface {
 	SetAccessToken(accessToken string)
+	GetAccessToken() string
 	UniversalAuthLogin(clientID string, clientSecret string) (credential MachineIdentityCredential, err error)
 	KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (credential MachineIdentityCredential, err error)
 	KubernetesRawServiceAccountTokenLogin(identityID string, serviceAccountToken string) (credential MachineIdentityCredential, err error)
@@ -43,6 +44,10 @@ type Auth struct {
 
 func (a *Auth) SetAccessToken(accessToken string) {
 	a.client.setPlainAccessToken(accessToken)
+}
+
+func (a *Auth) GetAccessToken() string {
+	return a.client.tokenDetails.AccessToken
 }
 
 func (a *Auth) UniversalAuthLogin(clientID string, clientSecret string) (credential MachineIdentityCredential, err error) {
