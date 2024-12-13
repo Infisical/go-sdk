@@ -1,8 +1,6 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/go-resty/resty/v2"
 	"github.com/infisical/go-sdk/packages/errors"
 )
@@ -15,14 +13,14 @@ func CallSignSshPublicKeyV1(httpClient *resty.Client, request SignSshPublicKeyV1
 	res, err := httpClient.R().
 		SetResult(&signSshPublicKeyResponse).
 		SetBody(request).
-		Post(fmt.Sprintf("/v1/ssh/sign"))
+		Post("/v1/ssh/sign")
 
 	if err != nil {
-		return SignSshPublicKeyV1Response{}, errors.NewRequestError(callIssueSshCredsOperation, err)
+		return SignSshPublicKeyV1Response{}, errors.NewRequestError(callSignSshPublicKeyOperation, err)
 	}
 
 	if res.IsError() {
-		return SignSshPublicKeyV1Response{}, errors.NewAPIErrorWithResponse(callIssueSshCredsOperation, res)
+		return SignSshPublicKeyV1Response{}, errors.NewAPIErrorWithResponse(callSignSshPublicKeyOperation, res)
 	}
 
 	return signSshPublicKeyResponse, nil

@@ -1,8 +1,6 @@
 package api
 
 import (
-	"fmt"
-
 	"github.com/go-resty/resty/v2"
 	"github.com/infisical/go-sdk/packages/errors"
 )
@@ -15,7 +13,7 @@ func CallIssueSshCredsV1(httpClient *resty.Client, request IssueSshCredsV1Reques
 	res, err := httpClient.R().
 		SetResult(&issueSshCredsResponse).
 		SetBody(request).
-		Post(fmt.Sprintf("/v1/ssh/issue"))
+		Post("/v1/ssh/issue")
 
 	if err != nil {
 		return IssueSshCredsV1Response{}, errors.NewRequestError(callIssueSshCredsOperation, err)
