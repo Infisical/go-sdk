@@ -8,7 +8,7 @@ type SignSshPublicKeyOptions = api.SignSshPublicKeyV1Request
 type IssueSshCredsOptions = api.IssueSshCredsV1Request
 
 type SshInterface interface {
-	SignSshPublicKey(options SignSshPublicKeyOptions) (string, error)
+	SignSshPublicKey(options SignSshPublicKeyOptions) (api.SignSshPublicKeyV1Response, error)
 	IssueSshCreds(options IssueSshCredsOptions) (api.IssueSshCredsV1Response, error)
 }
 
@@ -16,14 +16,14 @@ type Ssh struct {
 	client *InfisicalClient
 }
 
-func (f *Ssh) SignSshPublicKey(options SignSshPublicKeyOptions) (string, error) {
+func (f *Ssh) SignSshPublicKey(options SignSshPublicKeyOptions) (api.SignSshPublicKeyV1Response, error) {
 	res, err := api.CallSignSshPublicKeyV1(f.client.httpClient, options)
 
 	if err != nil {
-		return "", err
+		return api.SignSshPublicKeyV1Response{}, err
 	}
 
-	return res.SignedKey, nil
+	return res, nil
 }
 
 func (f *Ssh) IssueSshCreds(options IssueSshCredsOptions) (api.IssueSshCredsV1Response, error) {

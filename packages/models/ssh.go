@@ -15,11 +15,3 @@ const (
 	UserCert SshCertType = "user"
 	HostCert SshCertType = "host"
 )
-
-// type SignedSshKeyWithKeyPair struct {
-// 	SerialNumber  string           `json:"serialNumber"`  // Unique serial number for the SSH key
-// 	SignedKey     string           `json:"signedKey"`     // Signed SSH public key (certificate)
-// 	PrivateKey    string           `json:"privateKey"`    // Corresponding private key
-// 	PublicKey     string           `json:"publicKey"`     // Corresponding public key
-// 	KeyAlgorithm  CertKeyAlgorithm `json:"keyAlgorithm"`  // Algorithm used for the key
-// }
