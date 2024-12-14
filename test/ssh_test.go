@@ -23,7 +23,7 @@ package test
 //     }
 
 // 	// Test issuing SSH credentials
-// 	creds, err := client.Ssh().IssueSshCreds(infisical.IssueSshCredsOptions{
+// 	creds, err := client.Ssh().IssueCredentials(infisical.IssueSshCredsOptions{
 // 		ProjectID: os.Getenv("GO_SDK_TEST_PROJECT_ID"),
 // 		TemplateName: "template-name",
 // 		Principals: []string{"ec2-user"},
@@ -34,7 +34,7 @@ package test
 //     }
 
 // 	// Test signing SSH public key
-// 	creds2, err := client.Ssh().SignSshPublicKey(infisical.SignSshPublicKeyOptions{
+// 	creds2, err := client.Ssh().SignKey(infisical.SignSshPublicKeyOptions{
 // 		ProjectID: os.Getenv("GO_SDK_TEST_PROJECT_ID"),
 // 		TemplateName: "template-name",
 // 		Principals: []string{"ec2-user"},
