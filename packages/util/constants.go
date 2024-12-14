@@ -54,6 +54,23 @@ const (
 	OIDC_AUTH      AuthMethod = "OIDC_AUTH"
 )
 
+// SSH related:
+type CertKeyAlgorithm string
+
+const (
+	RSA2048   CertKeyAlgorithm = "RSA_2048"
+	RSA4096   CertKeyAlgorithm = "RSA_4096"
+	ECDSAP256 CertKeyAlgorithm = "EC_prime256v1"
+	ECDSAP384 CertKeyAlgorithm = "EC_secp384r1"
+)
+
+type SshCertType string
+
+const (
+	UserCert SshCertType = "user"
+	HostCert SshCertType = "host"
+)
+
 // General:
 const (
 	DEFAULT_INFISICAL_API_URL                     = "https://app.infisical.com/api"

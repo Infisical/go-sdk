@@ -34,6 +34,7 @@ type InfisicalClient struct {
 	auth           AuthInterface
 	dynamicSecrets DynamicSecretsInterface
 	kms            KmsInterface
+	ssh            SshInterface
 }
 
 type InfisicalClientInterface interface {
@@ -43,6 +44,7 @@ type InfisicalClientInterface interface {
 	Auth() AuthInterface
 	DynamicSecrets() DynamicSecretsInterface
 	Kms() KmsInterface
+	Ssh() SshInterface
 }
 
 type Config struct {
@@ -120,6 +122,7 @@ func NewInfisicalClient(context context.Context, config Config) InfisicalClientI
 	client.auth = NewAuth(client)
 	client.dynamicSecrets = NewDynamicSecrets(client)
 	client.kms = NewKms(client)
+	client.ssh = NewSsh(client)
 
 	if config.AutoTokenRefresh {
 		go client.handleTokenLifeCycle(context)
@@ -183,6 +186,10 @@ func (c *InfisicalClient) DynamicSecrets() DynamicSecretsInterface {
 
 func (c *InfisicalClient) Kms() KmsInterface {
 	return c.kms
+}
+
+func (c *InfisicalClient) Ssh() SshInterface {
+	return c.ssh
 }
 
 func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
