@@ -13,7 +13,7 @@ func CallSignSshPublicKeyV1(httpClient *resty.Client, request SignSshPublicKeyV1
 	res, err := httpClient.R().
 		SetResult(&signSshPublicKeyResponse).
 		SetBody(request).
-		Post("/v1/ssh/sign")
+		Post("/v1/ssh/certificates/sign")
 
 	if err != nil {
 		return SignSshPublicKeyV1Response{}, errors.NewRequestError(callSignSshPublicKeyOperation, err)
