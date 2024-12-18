@@ -13,7 +13,7 @@ func CallIssueSshCredsV1(httpClient *resty.Client, request IssueSshCredsV1Reques
 	res, err := httpClient.R().
 		SetResult(&issueSshCredsResponse).
 		SetBody(request).
-		Post("/v1/ssh/issue")
+		Post("/v1/ssh/certificates/issue")
 
 	if err != nil {
 		return IssueSshCredsV1Response{}, errors.NewRequestError(callIssueSshCredsOperation, err)
