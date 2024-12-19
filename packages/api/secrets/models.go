@@ -31,6 +31,7 @@ type RetrieveSecretV3RawRequest struct {
 	SecretPath     string `json:"secretPath,omitempty"`
 	Type           string `json:"type,omitempty"`
 	IncludeImports bool   `json:"include_imports"`
+	Version        int    `json:"version"`
 }
 
 type RetrieveSecretV3RawResponse struct {
