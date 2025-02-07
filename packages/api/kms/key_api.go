@@ -6,7 +6,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-func CallListKmsKeysV1(client *resty.Client, request ListKmsKeysV1Request) (*ListKmsKeysV1Response, error) {
+func CallListKmsKeysV1(client *resty.Client, request KmsListKeysV1Request) (*ListKmsKeysV1Response, error) {
 	var result ListKmsKeysV1Response
 	req := client.R().SetResult(&result)
 	req.SetQueryParam("projectId", request.ProjectID)
@@ -40,7 +40,7 @@ func CallListKmsKeysV1(client *resty.Client, request ListKmsKeysV1Request) (*Lis
 	return &result, nil
 }
 
-func CallCreateKmsKeyV1(client *resty.Client, request CreateKmsKeyV1Request) (*CreateKmsKeyV1Response, error) {
+func CallCreateKmsKeyV1(client *resty.Client, request KmsCreateKeyV1Request) (*CreateKmsKeyV1Response, error) {
 	var result CreateKmsKeyV1Response
 	resp, err := client.R().
 		SetBody(request).
@@ -58,7 +58,7 @@ func CallCreateKmsKeyV1(client *resty.Client, request CreateKmsKeyV1Request) (*C
 	return &result, nil
 }
 
-func CallUpdateKmsKeyV1(client *resty.Client, request UpdateKmsKeyV1Request) (*UpdateKmsKeyV1Response, error) {
+func CallUpdateKmsKeyV1(client *resty.Client, request KmsUpdateKeyV1Request) (*UpdateKmsKeyV1Response, error) {
 	var result UpdateKmsKeyV1Response
 	resp, err := client.R().
 		SetBody(request).
@@ -76,7 +76,7 @@ func CallUpdateKmsKeyV1(client *resty.Client, request UpdateKmsKeyV1Request) (*U
 	return &result, nil
 }
 
-func CallDeleteKmsKeyV1(client *resty.Client, request DeleteKmsKeyV1Request) (*DeleteKmsKeyV1Response, error) {
+func CallDeleteKmsKeyV1(client *resty.Client, request KmsDeleteKeyV1Request) (*DeleteKmsKeyV1Response, error) {
 	var result DeleteKmsKeyV1Response
 	resp, err := client.R().
 		SetResult(&result).
