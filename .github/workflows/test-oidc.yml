@@ -1,0 +1,18 @@
+name: Test OIDC
+
+on:
+    push:
+
+permissions:
+    id-token: write # This is required for requesting the JWT
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: Infisical/secrets-action@v1.0.7
+              with:
+                  method: "oidc"
+                  env-slug: "dev"
+                  project-slug: "identity-auth-tests-psr-u"
+                  identity-id: "d3f3513a-de88-4313-91f1-e25e6b75cef6"
