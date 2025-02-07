@@ -12,6 +12,10 @@ type KmsDecryptDataOptions = api.KmsDecryptDataV1Request
 type KmsInterface interface {
 	EncryptData(options KmsEncryptDataOptions) (string, error)
 	DecryptData(options KmsDecryptDataOptions) (string, error)
+	ListKeys(options api.ListKmsKeysV1Request) ([]api.KmsKey, error)
+	CreateKey(options api.CreateKmsKeyV1Request) (*api.KmsKey, error)
+	UpdateKey(options api.UpdateKmsKeyV1Request) (*api.KmsKey, error)
+	DeleteKey(options api.DeleteKmsKeyV1Request) (*api.KmsKey, error)
 }
 
 type Kms struct {
@@ -42,6 +46,38 @@ func (f *Kms) DecryptData(options KmsDecryptDataOptions) (string, error) {
 	}
 
 	return string(decodedPlaintext), nil
+}
+
+func (f *Kms) ListKeys(options api.ListKmsKeysV1Request) ([]api.KmsKey, error) {
+	res, err := api.CallListKmsKeysV1(f.client.httpClient, options)
+	if err != nil {
+		return nil, err
+	}
+	return res.Keys, nil
+}
+
+func (f *Kms) CreateKey(options api.CreateKmsKeyV1Request) (*api.KmsKey, error) {
+	res, err := api.CallCreateKmsKeyV1(f.client.httpClient, options)
+	if err != nil {
+		return nil, err
+	}
+	return &res.Key, nil
+}
+
+func (f *Kms) UpdateKey(options api.UpdateKmsKeyV1Request) (*api.KmsKey, error) {
+	res, err := api.CallUpdateKmsKeyV1(f.client.httpClient, options)
+	if err != nil {
+		return nil, err
+	}
+	return &res.Key, nil
+}
+
+func (f *Kms) DeleteKey(options api.DeleteKmsKeyV1Request) (*api.KmsKey, error) {
+	res, err := api.CallDeleteKmsKeyV1(f.client.httpClient, options)
+	if err != nil {
+		return nil, err
+	}
+	return &res.Key, nil
 }
 
 func NewKms(client *InfisicalClient) KmsInterface {
