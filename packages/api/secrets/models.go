@@ -1,6 +1,6 @@
 package api
 
-import "github.com/infisical/go-sdk/packages/models"
+import "github.com/levidurfee/go-sdk/packages/models"
 
 // List secrets
 type ListSecretsV3RawRequest struct {

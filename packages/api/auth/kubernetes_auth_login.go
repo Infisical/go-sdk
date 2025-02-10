@@ -2,7 +2,7 @@ package api
 
 import (
 	"github.com/go-resty/resty/v2"
-	"github.com/infisical/go-sdk/packages/errors"
+	"github.com/levidurfee/go-sdk/packages/errors"
 )
 
 const callKubernetesAuthLoginOperation = "CallKubernetesAuthLogin"

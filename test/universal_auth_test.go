@@ -4,7 +4,7 @@ package test
 // 	"os"
 // 	"testing"
 
-// 	infisical "github.com/infisical/go-sdk"
+// 	infisical "github.com/levidurfee/go-sdk"
 // )
 
 // func TestUniversalAuthLogin(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/infisical/go-sdk/packages/util"
+	"github.com/levidurfee/go-sdk/packages/util"
 )
 
 // APIError represents an error response from the API

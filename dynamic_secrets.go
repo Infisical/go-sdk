@@ -1,8 +1,8 @@
 package infisical
 
 import (
-	api "github.com/infisical/go-sdk/packages/api/dynamic_secrets"
-	"github.com/infisical/go-sdk/packages/models"
+	api "github.com/levidurfee/go-sdk/packages/api/dynamic_secrets"
+	"github.com/levidurfee/go-sdk/packages/models"
 )
 
 type ListDynamicSecretLeasesOptions = api.ListDynamicSecretLeaseV1Request

@@ -3,7 +3,7 @@ package infisical
 import (
 	"encoding/base64"
 
-	api "github.com/infisical/go-sdk/packages/api/kms"
+	api "github.com/levidurfee/go-sdk/packages/api/kms"
 )
 
 type KmsEncryptDataOptions = api.KmsEncryptDataV1Request

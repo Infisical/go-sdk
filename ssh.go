@@ -1,7 +1,7 @@
 package infisical
 
 import (
-	api "github.com/infisical/go-sdk/packages/api/ssh"
+	api "github.com/levidurfee/go-sdk/packages/api/ssh"
 )
 
 type SignSshPublicKeyOptions = api.SignSshPublicKeyV1Request

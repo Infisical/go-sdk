@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	api "github.com/infisical/go-sdk/packages/api/auth"
-	"github.com/infisical/go-sdk/packages/models"
-	"github.com/infisical/go-sdk/packages/util"
+	api "github.com/levidurfee/go-sdk/packages/api/auth"
+	"github.com/levidurfee/go-sdk/packages/models"
+	"github.com/levidurfee/go-sdk/packages/util"
 
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 )
