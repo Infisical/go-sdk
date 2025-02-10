@@ -3,9 +3,9 @@ package infisical
 import (
 	"os"
 
-	api "github.com/infisical/go-sdk/packages/api/secrets"
-	"github.com/infisical/go-sdk/packages/models"
-	"github.com/infisical/go-sdk/packages/util"
+	api "github.com/levidurfee/go-sdk/packages/api/secrets"
+	"github.com/levidurfee/go-sdk/packages/models"
+	"github.com/levidurfee/go-sdk/packages/util"
 )
 
 type ListSecretsOptions = api.ListSecretsV3RawRequest

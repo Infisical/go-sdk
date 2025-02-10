@@ -1,9 +1,9 @@
 package infisical
 
 import (
-	api "github.com/infisical/go-sdk/packages/api/auth"
-	"github.com/infisical/go-sdk/packages/errors"
-	"github.com/infisical/go-sdk/packages/models"
+	api "github.com/levidurfee/go-sdk/packages/api/auth"
+	"github.com/levidurfee/go-sdk/packages/errors"
+	"github.com/levidurfee/go-sdk/packages/models"
 )
 
 type MachineIdentityCredential = api.MachineIdentityAuthLoginResponse

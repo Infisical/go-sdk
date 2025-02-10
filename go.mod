@@ -1,4 +1,4 @@
-module github.com/infisical/go-sdk
+module github.com/levidurfee/go-sdk
 
 go 1.21
 

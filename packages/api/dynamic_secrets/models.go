@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/infisical/go-sdk/packages/models"
+	"github.com/levidurfee/go-sdk/packages/models"
 )
 
 type CreateDynamicSecretLeaseV1Request struct {

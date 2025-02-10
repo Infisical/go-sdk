@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/infisical/go-sdk/packages/errors"
+	"github.com/levidurfee/go-sdk/packages/errors"
 )
 
 const callDeleteSecretV3RawOperation = "CallDeleteSecretV3Raw"

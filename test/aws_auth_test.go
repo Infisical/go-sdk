@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	infisical "github.com/infisical/go-sdk"
+	infisical "github.com/levidurfee/go-sdk"
 )
 
 func TestAWSAuthLogin(t *testing.T) {

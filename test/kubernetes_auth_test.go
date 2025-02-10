@@ -3,7 +3,7 @@ package test
 // import (
 // 	"testing"
 
-// 	infisical "github.com/infisical/go-sdk"
+// 	infisical "github.com/levidurfee/go-sdk"
 // )
 
 // func TestKubernetesAuthLogin(t *testing.T) {

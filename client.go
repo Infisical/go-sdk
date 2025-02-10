@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
-	api "github.com/infisical/go-sdk/packages/api/auth"
-	"github.com/infisical/go-sdk/packages/models"
-	"github.com/infisical/go-sdk/packages/util"
+	api "github.com/levidurfee/go-sdk/packages/api/auth"
+	"github.com/levidurfee/go-sdk/packages/models"
+	"github.com/levidurfee/go-sdk/packages/util"
 )
 
 type InfisicalClient struct {
