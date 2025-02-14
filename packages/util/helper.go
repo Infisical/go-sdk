@@ -2,6 +2,8 @@ package util
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -102,4 +104,9 @@ func SleepWithContext(ctx context.Context, duration time.Duration) error {
 	case <-time.After(duration):
 		return nil
 	}
+}
+
+func ComputeCacheKeyFromBytes(bytes []byte) string {
+	key := sha256.Sum256(bytes)
+	return hex.EncodeToString(key[:])
 }

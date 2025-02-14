@@ -7,6 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.27.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.18
 	github.com/go-resty/resty/v2 v2.13.1
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	google.golang.org/api v0.188.0
 )
 
