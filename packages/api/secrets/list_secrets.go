@@ -25,7 +25,7 @@ func CallListSecretsV3(cache *expirable.LRU[string, interface{}], httpClient *re
 			if response, ok := cached.(ListSecretsV3RawResponse); ok {
 				return response, nil
 			}
-			cache.Remove(cacheKey) // clean up invalid cache entry
+			cache.Remove(cacheKey)
 		}
 	}
 	secretsResponse := ListSecretsV3RawResponse{}
