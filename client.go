@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	api "github.com/infisical/go-sdk/packages/api/auth"
 	"github.com/infisical/go-sdk/packages/models"
 	"github.com/infisical/go-sdk/packages/util"
@@ -25,6 +26,8 @@ type InfisicalClient struct {
 	firstFetchedTime time.Time
 
 	mu sync.RWMutex
+
+	cache *expirable.LRU[string, interface{}]
 
 	httpClient *resty.Client
 	config     Config
@@ -48,11 +51,12 @@ type InfisicalClientInterface interface {
 }
 
 type Config struct {
-	SiteUrl          string `default:"https://app.infisical.com"`
-	CaCertificate    string
-	UserAgent        string `default:"infisical-go-sdk"` // User-Agent header to be used on requests sent by the SDK. Defaults to `infisical-go-sdk`. Do not modify this unless you have a reason to do so.
-	AutoTokenRefresh bool   `default:"true"`             // Wether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
-	SilentMode       bool   `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
+	SiteUrl              string `default:"https://app.infisical.com"`
+	CaCertificate        string
+	UserAgent            string `default:"infisical-go-sdk"` // User-Agent header to be used on requests sent by the SDK. Defaults to `infisical-go-sdk`. Do not modify this unless you have a reason to do so.
+	AutoTokenRefresh     bool   `default:"true"`             // Wether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
+	SilentMode           bool   `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
+	CacheExpiryInSeconds int
 }
 
 func setDefaults(cfg *Config) {
@@ -123,6 +127,10 @@ func NewInfisicalClient(context context.Context, config Config) InfisicalClientI
 	client.dynamicSecrets = NewDynamicSecrets(client)
 	client.kms = NewKms(client)
 	client.ssh = NewSsh(client)
+	if config.CacheExpiryInSeconds != 0 {
+		// hard limit set at 1000 cache items until forced eviction
+		client.cache = expirable.NewLRU[string, interface{}](1000, nil, time.Second*time.Duration(config.CacheExpiryInSeconds))
+	}
 
 	if config.AutoTokenRefresh {
 		go client.handleTokenLifeCycle(context)

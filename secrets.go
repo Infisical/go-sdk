@@ -27,7 +27,7 @@ type Secrets struct {
 }
 
 func (s *Secrets) List(options ListSecretsOptions) ([]models.Secret, error) {
-	res, err := api.CallListSecretsV3(s.client.httpClient, options)
+	res, err := api.CallListSecretsV3(s.client.cache, s.client.httpClient, options)
 
 	if err != nil {
 		return nil, err
