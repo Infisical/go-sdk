@@ -65,7 +65,7 @@ func (s *Secrets) List(options ListSecretsOptions) ([]models.Secret, error) {
 }
 
 func (s *Secrets) Retrieve(options RetrieveSecretOptions) (models.Secret, error) {
-	res, err := api.CallRetrieveSecretV3(s.client.httpClient, options)
+	res, err := api.CallRetrieveSecretV3(s.client.cache, s.client.httpClient, options)
 
 	if err != nil {
 		return models.Secret{}, err

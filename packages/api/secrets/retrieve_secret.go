@@ -1,15 +1,33 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/infisical/go-sdk/packages/errors"
+	"github.com/infisical/go-sdk/packages/util"
 )
 
 const callRetrieveSecretV3RawOperation = "CallRetrieveSecretV3Raw"
 
-func CallRetrieveSecretV3(httpClient *resty.Client, request RetrieveSecretV3RawRequest) (RetrieveSecretV3RawResponse, error) {
+func CallRetrieveSecretV3(cache *expirable.LRU[string, interface{}], httpClient *resty.Client, request RetrieveSecretV3RawRequest) (RetrieveSecretV3RawResponse, error) {
+	var cacheKey string
+
+	if cache != nil {
+		reqBytes, err := json.Marshal(request)
+		if err != nil {
+			return RetrieveSecretV3RawResponse{}, err
+		}
+		cacheKey = util.ComputeCacheKeyFromBytes(reqBytes, callRetrieveSecretV3RawOperation)
+		if cached, found := cache.Get(cacheKey); found {
+			if response, ok := cached.(RetrieveSecretV3RawResponse); ok {
+				return response, nil
+			}
+			cache.Remove(cacheKey)
+		}
+	}
 
 	retrieveResponse := RetrieveSecretV3RawResponse{}
 
@@ -39,6 +57,10 @@ func CallRetrieveSecretV3(httpClient *resty.Client, request RetrieveSecretV3RawR
 
 	if res.IsError() {
 		return RetrieveSecretV3RawResponse{}, errors.NewAPIErrorWithResponse(callRetrieveSecretV3RawOperation, res)
+	}
+
+	if cache != nil {
+		cache.Add(cacheKey, retrieveResponse)
 	}
 
 	return retrieveResponse, nil

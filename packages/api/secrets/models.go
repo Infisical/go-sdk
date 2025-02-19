@@ -24,7 +24,7 @@ type ListSecretsV3RawResponse struct {
 // Retrieve secret
 
 type RetrieveSecretV3RawRequest struct {
-	SecretKey string `json:"-"`
+	SecretKey string `json:"secretKey"`
 
 	ProjectID      string `json:"workspaceId"`
 	Environment    string `json:"environment"`
