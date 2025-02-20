@@ -20,7 +20,7 @@ func CallListSecretsV3(cache *expirable.LRU[string, interface{}], httpClient *re
 		if err != nil {
 			return ListSecretsV3RawResponse{}, err
 		}
-		cacheKey = util.ComputeCacheKeyFromBytes(reqBytes)
+		cacheKey = util.ComputeCacheKeyFromBytes(reqBytes, callListSecretsV3RawOperation)
 		if cached, found := cache.Get(cacheKey); found {
 			if response, ok := cached.(ListSecretsV3RawResponse); ok {
 				return response, nil
@@ -28,6 +28,7 @@ func CallListSecretsV3(cache *expirable.LRU[string, interface{}], httpClient *re
 			cache.Remove(cacheKey)
 		}
 	}
+
 	secretsResponse := ListSecretsV3RawResponse{}
 
 	if request.SecretPath == "" {

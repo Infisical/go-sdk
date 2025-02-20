@@ -106,7 +106,7 @@ func SleepWithContext(ctx context.Context, duration time.Duration) error {
 	}
 }
 
-func ComputeCacheKeyFromBytes(bytes []byte) string {
+func ComputeCacheKeyFromBytes(bytes []byte, feature string) string {
 	key := sha256.Sum256(bytes)
-	return hex.EncodeToString(key[:])
+	return fmt.Sprintf("%s-%s", feature, hex.EncodeToString(key[:]))
 }
