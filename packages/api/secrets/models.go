@@ -86,15 +86,12 @@ type DeleteSecretV3RawResponse struct {
 }
 
 type BatchCreateSecret struct {
-	SecretKey             string `json:"secretKey"`
-	SecretValue           string `json:"secretValue"`
-	SecretComment         string `json:"secretComment,omitempty"`
-	SkipMultiLineEncoding bool   `json:"skipMultilineEncoding,omitempty"`
-	SecretMetadata        []struct {
-		Key   string `json:"key"`
-		Value string `json:"value"`
-	} `json:"secretMetadata,omitempty"`
-	TagIDs []string `json:"tagIds,omitempty"`
+	SecretKey             string                  `json:"secretKey"`
+	SecretValue           string                  `json:"secretValue"`
+	SecretComment         string                  `json:"secretComment,omitempty"`
+	SkipMultiLineEncoding bool                    `json:"skipMultilineEncoding,omitempty"`
+	SecretMetadata        []models.SecretMetadata `json:"secretMetadata,omitempty"`
+	TagIDs                []string                `json:"tagIds,omitempty"`
 }
 
 type BatchCreateSecretsV3RawRequest struct {

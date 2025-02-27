@@ -15,6 +15,7 @@ type CreateSecretOptions = api.CreateSecretV3RawRequest
 type DeleteSecretOptions = api.DeleteSecretV3RawRequest
 
 type BatchCreateSecret = api.BatchCreateSecret
+type SecretMetadata = models.SecretMetadata
 
 type BatchCreateSecretsOptions = api.BatchCreateSecretsV3RawRequest
 
