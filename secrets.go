@@ -14,15 +14,29 @@ type UpdateSecretOptions = api.UpdateSecretV3RawRequest
 type CreateSecretOptions = api.CreateSecretV3RawRequest
 type DeleteSecretOptions = api.DeleteSecretV3RawRequest
 
+type BatchCreateSecret = api.BatchCreateSecret
+type SecretMetadata = models.SecretMetadata
+
+type BatchCreateSecretsOptions = api.BatchCreateSecretsV3RawRequest
+
+type BatchSecretsInterface interface {
+	Create(options BatchCreateSecretsOptions) ([]models.Secret, error)
+}
+
 type SecretsInterface interface {
 	List(options ListSecretsOptions) ([]models.Secret, error)
 	Retrieve(options RetrieveSecretOptions) (models.Secret, error)
 	Update(options UpdateSecretOptions) (models.Secret, error)
 	Create(options CreateSecretOptions) (models.Secret, error)
 	Delete(options DeleteSecretOptions) (models.Secret, error)
+	Batch() BatchSecretsInterface
 }
 
 type Secrets struct {
+	client *InfisicalClient
+}
+
+type BatchSecrets struct {
 	client *InfisicalClient
 }
 
@@ -102,6 +116,22 @@ func (s *Secrets) Delete(options DeleteSecretOptions) (models.Secret, error) {
 	}
 
 	return res.Secret, nil
+}
+
+// Batch operations
+
+func (bs *BatchSecrets) Create(options BatchCreateSecretsOptions) ([]models.Secret, error) {
+	res, err := api.CallBatchCreateSecretV3(bs.client.httpClient, options)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return res.Secrets, nil
+}
+
+func (s *Secrets) Batch() BatchSecretsInterface {
+	return &BatchSecrets{client: s.client}
 }
 
 func NewSecrets(client *InfisicalClient) SecretsInterface {
