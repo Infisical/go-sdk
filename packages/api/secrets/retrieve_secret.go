@@ -47,6 +47,7 @@ func CallRetrieveSecretV3(cache *expirable.LRU[string, interface{}], httpClient 
 			"secretPath":      request.SecretPath,
 			"include_imports": fmt.Sprintf("%t", request.IncludeImports),
 			"type":            request.Type,
+			"version":         request.Version,
 		})
 
 	res, err := req.Get(fmt.Sprintf("/v3/secrets/raw/%s", request.SecretKey))
