@@ -8,10 +8,8 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
-	"unicode"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/hashicorp/golang-lru/v2/expirable"
@@ -59,7 +57,7 @@ type Config struct {
 	AutoTokenRefresh     bool   `default:"true"`             // Wether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
 	SilentMode           bool   `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
 	CacheExpiryInSeconds int    // Defines how long certain API responses should be cached in memory, in seconds. When set to a positive value, responses from specific fetch API requests (like secret fetching) will be cached for this duration. Set to 0 to disable caching. Defaults to 0.
-	CustomHeaders        string `default:""`
+	CustomHeaders        map[string]string
 }
 
 func setDefaults(cfg *Config) {
@@ -161,70 +159,8 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 			SetBaseURL(config.SiteUrl)
 	}
 
-	if config.CustomHeaders != "" {
-		headers := map[string]string{}
-
-		pos := 0
-		for pos < len(config.CustomHeaders) {
-			for pos < len(config.CustomHeaders) && unicode.IsSpace(rune(config.CustomHeaders[pos])) {
-				pos++
-			}
-
-			if pos >= len(config.CustomHeaders) {
-				break
-			}
-
-			keyStart := pos
-			for pos < len(config.CustomHeaders) && config.CustomHeaders[pos] != '=' && !unicode.IsSpace(rune(config.CustomHeaders[pos])) {
-				pos++
-			}
-
-			if pos >= len(config.CustomHeaders) || config.CustomHeaders[pos] != '=' {
-				break
-			}
-
-			key := config.CustomHeaders[keyStart:pos]
-			pos++
-
-			for pos < len(config.CustomHeaders) && unicode.IsSpace(rune(config.CustomHeaders[pos])) {
-				pos++
-			}
-
-			var value string
-
-			if pos < len(config.CustomHeaders) {
-				if config.CustomHeaders[pos] == '"' || config.CustomHeaders[pos] == '\'' {
-					quoteChar := config.CustomHeaders[pos]
-					pos++
-					valueStart := pos
-
-					for pos < len(config.CustomHeaders) &&
-						(config.CustomHeaders[pos] != quoteChar ||
-							(pos > 0 && config.CustomHeaders[pos-1] == '\\')) {
-						pos++
-					}
-
-					if pos < len(config.CustomHeaders) {
-						value = config.CustomHeaders[valueStart:pos]
-						pos++
-					} else {
-						value = config.CustomHeaders[valueStart:]
-					}
-				} else {
-					valueStart := pos
-					for pos < len(config.CustomHeaders) && !unicode.IsSpace(rune(config.CustomHeaders[pos])) {
-						pos++
-					}
-					value = config.CustomHeaders[valueStart:pos]
-				}
-			}
-
-			if key != "" && !strings.EqualFold(key, "Accept") {
-				headers[key] = value
-			}
-		}
-
-		c.httpClient.SetHeaders(headers)
+	if len(config.CustomHeaders) > 0 {
+		c.httpClient.SetHeaders(config.CustomHeaders)
 	}
 
 	if config.CaCertificate != "" {
