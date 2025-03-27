@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/hashicorp/golang-lru/v2/expirable"
@@ -162,18 +163,67 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 
 	if config.CustomHeaders != "" {
 		headers := map[string]string{}
-		pairs := strings.Split(config.CustomHeaders, " ")
-		for _, pair := range pairs {
-			kv := strings.SplitN(pair, "=", 2)
-			if len(kv) != 2 {
-				continue
+
+		pos := 0
+		for pos < len(config.CustomHeaders) {
+			for pos < len(config.CustomHeaders) && unicode.IsSpace(rune(config.CustomHeaders[pos])) {
+				pos++
 			}
-			key := strings.TrimSpace(kv[0])
-			value := strings.TrimSpace(kv[1])
-			if !strings.EqualFold(key, "User-Agent") && !strings.EqualFold(key, "Accept") {
+
+			if pos >= len(config.CustomHeaders) {
+				break
+			}
+
+			keyStart := pos
+			for pos < len(config.CustomHeaders) && config.CustomHeaders[pos] != '=' && !unicode.IsSpace(rune(config.CustomHeaders[pos])) {
+				pos++
+			}
+
+			if pos >= len(config.CustomHeaders) || config.CustomHeaders[pos] != '=' {
+				break
+			}
+
+			key := config.CustomHeaders[keyStart:pos]
+			pos++
+
+			for pos < len(config.CustomHeaders) && unicode.IsSpace(rune(config.CustomHeaders[pos])) {
+				pos++
+			}
+
+			var value string
+
+			if pos < len(config.CustomHeaders) {
+				if config.CustomHeaders[pos] == '"' || config.CustomHeaders[pos] == '\'' {
+					quoteChar := config.CustomHeaders[pos]
+					pos++
+					valueStart := pos
+
+					for pos < len(config.CustomHeaders) &&
+						(config.CustomHeaders[pos] != quoteChar ||
+							(pos > 0 && config.CustomHeaders[pos-1] == '\\')) {
+						pos++
+					}
+
+					if pos < len(config.CustomHeaders) {
+						value = config.CustomHeaders[valueStart:pos]
+						pos++
+					} else {
+						value = config.CustomHeaders[valueStart:]
+					}
+				} else {
+					valueStart := pos
+					for pos < len(config.CustomHeaders) && !unicode.IsSpace(rune(config.CustomHeaders[pos])) {
+						pos++
+					}
+					value = config.CustomHeaders[valueStart:pos]
+				}
+			}
+
+			if key != "" && !strings.EqualFold(key, "Accept") {
 				headers[key] = value
 			}
 		}
+
 		c.httpClient.SetHeaders(headers)
 	}
 
