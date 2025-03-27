@@ -57,6 +57,7 @@ type Config struct {
 	AutoTokenRefresh     bool   `default:"true"`             // Wether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
 	SilentMode           bool   `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
 	CacheExpiryInSeconds int    // Defines how long certain API responses should be cached in memory, in seconds. When set to a positive value, responses from specific fetch API requests (like secret fetching) will be cached for this duration. Set to 0 to disable caching. Defaults to 0.
+	CustomHeaders        map[string]string
 }
 
 func setDefaults(cfg *Config) {
@@ -156,6 +157,10 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 		c.httpClient.
 			SetHeader("User-Agent", config.UserAgent).
 			SetBaseURL(config.SiteUrl)
+	}
+
+	if len(config.CustomHeaders) > 0 {
+		c.httpClient.SetHeaders(config.CustomHeaders)
 	}
 
 	if config.CaCertificate != "" {
