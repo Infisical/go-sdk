@@ -19,16 +19,22 @@ type KmsGetPublicKeyOptions = api.KmsGetPublicKeyV1Request
 type KmsCreateKeyOptions = api.KmsCreateKeyV1Request
 type KmsDeleteKeyOptions = api.KmsDeleteKeyV1Request
 
+type KmsGetKeyByNameOptions = api.KmsGetKeyByNameV1Request
+type KmsGetKeyByIdOptions = api.KmsGetKeyByIdV1Request
+
 // Results
 type KmsVerifyDataResult = api.KmsVerifyDataV1Response
 type KmsSignDataResult = api.KmsSignDataV1Response
 
 type KmsCreateKeyResult = api.KmsKey
 type KmsDeleteKeyResult = api.KmsKey
+type KmsGetKeyResult = api.KmsKey
 
 type KmsKeysInterface interface {
 	Create(options KmsCreateKeyOptions) (KmsCreateKeyResult, error)
 	Delete(options KmsDeleteKeyOptions) (KmsDeleteKeyResult, error)
+	GetByName(options KmsGetKeyByNameOptions) (KmsGetKeyResult, error)
+	GetById(options KmsGetKeyByIdOptions) (KmsGetKeyResult, error)
 }
 
 type KmsSigningInterface interface {
@@ -75,6 +81,26 @@ func (k *KmsKeys) Delete(options KmsDeleteKeyOptions) (KmsDeleteKeyResult, error
 
 	if err != nil {
 		return KmsDeleteKeyResult{}, err
+	}
+
+	return res.Key, nil
+}
+
+func (k *KmsKeys) GetByName(options KmsGetKeyByNameOptions) (KmsGetKeyResult, error) {
+	res, err := api.CallKmsGetKeyByNameV1(k.client.httpClient, options)
+
+	if err != nil {
+		return KmsGetKeyResult{}, err
+	}
+
+	return res.Key, nil
+}
+
+func (k *KmsKeys) GetById(options KmsGetKeyByIdOptions) (KmsGetKeyResult, error) {
+	res, err := api.CallKmsGetKeyByIdV1(k.client.httpClient, options)
+
+	if err != nil {
+		return KmsGetKeyResult{}, err
 	}
 
 	return res.Key, nil

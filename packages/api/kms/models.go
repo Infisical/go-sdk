@@ -22,6 +22,7 @@ type KmsSignDataV1Request struct {
 	KeyId            string
 	Data             string `json:"data"`
 	SigningAlgorithm string `json:"signingAlgorithm"`
+	IsDigest         bool   `json:"isDigest"`
 }
 
 type KmsSignDataV1Response struct {
@@ -87,6 +88,20 @@ type KmsDeleteKeyV1Request struct {
 }
 
 type KmsDeleteKeyV1Response struct {
+	Key KmsKey `json:"key"`
+}
+
+type KmsGetKeyByNameV1Request struct {
+	KeyName   string
+	ProjectId string
+}
+
+type KmsGetKeyByIdV1Request struct {
+	KeyId     string
+	ProjectId string
+}
+
+type KmsGetKeyV1Response struct {
 	Key KmsKey `json:"key"`
 }
 
