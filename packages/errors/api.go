@@ -14,15 +14,17 @@ type APIError struct {
 	URL          string `json:"url"`
 	StatusCode   int    `json:"statusCode"`
 	ErrorMessage string `json:"message,omitempty"`
+	ReqId        string `json:"reqId,omitempty"`
 }
 
 func (e *APIError) Error() string {
 	msg := fmt.Sprintf(
-		"APIError: %s unsuccessful response [%v %v] [status-code=%v]",
+		"APIError: %s unsuccessful response [%v %v] [status-code=%v] [reqId=%v]",
 		e.Operation,
 		e.Method,
 		e.URL,
 		e.StatusCode,
+		e.ReqId,
 	)
 
 	if e.ErrorMessage != "" {
@@ -44,6 +46,9 @@ func NewAPIError(operation string, res *resty.Response) error {
 
 func NewAPIErrorWithResponse(operation string, res *resty.Response) error {
 	errorMessage := util.TryParseErrorBody(res)
+	reqId := util.TryExtractReqId(res)
+
+	fmt.Printf("Response body: %+v\n\n\n", string(res.Body()))
 
 	return &APIError{
 		Operation:    operation,
@@ -51,5 +56,6 @@ func NewAPIErrorWithResponse(operation string, res *resty.Response) error {
 		URL:          res.Request.URL,
 		StatusCode:   res.StatusCode(),
 		ErrorMessage: errorMessage,
+		ReqId:        reqId,
 	}
 }
