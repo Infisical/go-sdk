@@ -48,8 +48,6 @@ func NewAPIErrorWithResponse(operation string, res *resty.Response) error {
 	errorMessage := util.TryParseErrorBody(res)
 	reqId := util.TryExtractReqId(res)
 
-	fmt.Printf("Response body: %+v\n\n\n", string(res.Body()))
-
 	return &APIError{
 		Operation:    operation,
 		Method:       res.Request.Method,
