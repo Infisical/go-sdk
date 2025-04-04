@@ -39,6 +39,11 @@ func CallRetrieveSecretV3(cache *expirable.LRU[string, interface{}], httpClient 
 		request.SecretPath = "/"
 	}
 
+	var version string
+	if request.Version > 0 {
+		version = fmt.Sprintf("%d", request.Version)
+	}
+
 	req := httpClient.R().
 		SetResult(&retrieveResponse).
 		SetQueryParams(map[string]string{
@@ -47,6 +52,7 @@ func CallRetrieveSecretV3(cache *expirable.LRU[string, interface{}], httpClient 
 			"secretPath":      request.SecretPath,
 			"include_imports": fmt.Sprintf("%t", request.IncludeImports),
 			"type":            request.Type,
+			"version":         version,
 		})
 
 	res, err := req.Get(fmt.Sprintf("/v3/secrets/raw/%s", request.SecretKey))
