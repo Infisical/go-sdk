@@ -7,7 +7,7 @@ import (
 	infisical "github.com/infisical/go-sdk"
 )
 
-func TestSshIssueCreds(t *testing.T) {
+func TestBatchCreateSecrets(t *testing.T) {
 	client := infisical.NewInfisicalClient(context.Background(), infisical.Config{
 		SiteUrl:          "http://localhost:8080",
 		AutoTokenRefresh: true,
