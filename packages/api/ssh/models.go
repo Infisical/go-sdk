@@ -55,6 +55,10 @@ type SshHost struct {
 
 type GetSshHostsV1Response []SshHost
 
+type IssueSshCredsFromHostV1Request struct {
+	LoginUser string `json:"loginUser"`
+}
+
 type IssueSshCredsFromHostV1Response struct {
 	SerialNumber string                `json:"serialNumber"`
 	SignedKey    string                `json:"signedKey"`
