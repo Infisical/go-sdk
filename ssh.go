@@ -6,10 +6,14 @@ import (
 
 type SignSshPublicKeyOptions = api.SignSshPublicKeyV1Request
 type IssueSshCredsOptions = api.IssueSshCredsV1Request
+type GetSshHostsOptions = api.GetSshHostsV1Request
 
 type SshInterface interface {
 	SignKey(options SignSshPublicKeyOptions) (api.SignSshPublicKeyV1Response, error)
 	IssueCredentials(options IssueSshCredsOptions) (api.IssueSshCredsV1Response, error)
+	GetSshHosts(options GetSshHostsOptions) (api.GetSshHostsV1Response, error)
+	GetSshHostUserCaPublicKey(sshHostId string) (string, error)
+	IssueCredentialsFromHost(sshHostId string) (api.IssueSshCredsFromHostV1Response, error)
 }
 
 type Ssh struct {
@@ -33,6 +37,34 @@ func (f *Ssh) IssueCredentials(options IssueSshCredsOptions) (api.IssueSshCredsV
 		return api.IssueSshCredsV1Response{}, err
 	}
 
+	return res, nil
+}
+
+func (f *Ssh) GetSshHosts(options GetSshHostsOptions) (api.GetSshHostsV1Response, error) {
+	res, err := api.GetSshHostsV1(f.client.httpClient, options)
+
+	if err != nil {
+		return api.GetSshHostsV1Response{}, err
+	}
+
+	return res, nil
+}
+
+func (f *Ssh) GetSshHostUserCaPublicKey(sshHostId string) (string, error) {
+	res, err := api.GetSshHostUserCaPublicKeyV1(f.client.httpClient, sshHostId)
+
+	if err != nil {
+		return "", err
+	}
+
+	return res, nil
+}
+
+func (f *Ssh) IssueCredentialsFromHost(sshHostId string) (api.IssueSshCredsFromHostV1Response, error) {
+	res, err := api.CallIssueSshCredsFromHostV1(f.client.httpClient, sshHostId)
+	if err != nil {
+		return api.IssueSshCredsFromHostV1Response{}, err
+	}
 	return res, nil
 }
 

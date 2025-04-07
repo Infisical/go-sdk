@@ -34,3 +34,31 @@ type IssueSshCredsV1Response struct {
 	PublicKey    string                `json:"publicKey"`
 	KeyAlgorithm util.CertKeyAlgorithm `json:"keyAlgorithm"`
 }
+
+type GetSshHostsV1Request struct{}
+
+type SshHostLoginMapping struct {
+	LoginUser         string   `json:"loginUser"`
+	AllowedPrincipals []string `json:"allowedPrincipals"`
+}
+
+type SshHost struct {
+	ID            string                `json:"id"`
+	ProjectID     string                `json:"projectId"`
+	Hostname      string                `json:"hostname"`
+	UserCertTtl   string                `json:"userCertTtl"`
+	HostCertTtl   string                `json:"hostCertTtl"`
+	UserSshCaId   string                `json:"userSshCaId"`
+	HostSshCaId   string                `json:"hostSshCaId"`
+	LoginMappings []SshHostLoginMapping `json:"loginMappings"`
+}
+
+type GetSshHostsV1Response []SshHost
+
+type IssueSshCredsFromHostV1Response struct {
+	SerialNumber string                `json:"serialNumber"`
+	SignedKey    string                `json:"signedKey"`
+	PrivateKey   string                `json:"privateKey"`
+	PublicKey    string                `json:"publicKey"`
+	KeyAlgorithm util.CertKeyAlgorithm `json:"keyAlgorithm"`
+}
