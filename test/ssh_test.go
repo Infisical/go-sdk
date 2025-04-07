@@ -1,4 +1,4 @@
-// package test
+package test
 
 // import (
 // 	"context"
@@ -95,4 +95,3 @@
 // 	// fmt.Print("Newly-issued SSH credentials: ", creds)
 // 	// fmt.Print("Signed SSH credential: ", creds2)
 // }
-
