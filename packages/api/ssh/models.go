@@ -75,3 +75,15 @@ type IssueSshHostHostCertV1Response struct {
 	SerialNumber string `json:"serialNumber"`
 	SignedKey    string `json:"signedKey"`
 }
+
+type AddSshHostV1Request struct {
+	ProjectID     string                `json:"projectId"`
+	Hostname      string                `json:"hostname"`
+	UserCertTtl   string                `json:"userCertTtl,omitempty"`
+	HostCertTtl   string                `json:"hostCertTtl,omitempty"`
+	UserSshCaId   string                `json:"userSshCaId,omitempty"`
+	HostSshCaId   string                `json:"hostSshCaId,omitempty"`
+	LoginMappings []SshHostLoginMapping `json:"loginMappings,omitempty"`
+}
+
+type AddSshHostV1Response SshHost
