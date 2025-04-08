@@ -14,7 +14,7 @@ func CallKmsGetKeyByNameV1(httpClient *resty.Client, request KmsGetKeyByNameV1Re
 
 	res, err := httpClient.R().
 		SetResult(&kmsGetKeyByNameResponse).
-		Get(fmt.Sprintf("/v1/kms/key?projectId=%s&name=%s", request.ProjectId, request.KeyName))
+		Get(fmt.Sprintf("/v1/kms/keys/key-name/%s?projectId=%s", request.KeyName, request.ProjectId))
 
 	if err != nil {
 		return KmsGetKeyV1Response{}, errors.NewRequestError(callKmsGetKeyByNameOperationV1, err)

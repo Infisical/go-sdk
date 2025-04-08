@@ -20,7 +20,6 @@ type KmsCreateKeyOptions = api.KmsCreateKeyV1Request
 type KmsDeleteKeyOptions = api.KmsDeleteKeyV1Request
 
 type KmsGetKeyByNameOptions = api.KmsGetKeyByNameV1Request
-type KmsGetKeyByIdOptions = api.KmsGetKeyByIdV1Request
 
 // Results
 type KmsVerifyDataResult = api.KmsVerifyDataV1Response
@@ -34,11 +33,10 @@ type KmsKeysInterface interface {
 	Create(options KmsCreateKeyOptions) (KmsCreateKeyResult, error)
 	Delete(options KmsDeleteKeyOptions) (KmsDeleteKeyResult, error)
 	GetByName(options KmsGetKeyByNameOptions) (KmsGetKeyResult, error)
-	GetById(options KmsGetKeyByIdOptions) (KmsGetKeyResult, error)
 }
 
 type KmsSigningInterface interface {
-	SignData(options KmsSignDataOptions) (KmsSignDataResult, error)
+	SignData(options KmsSignDataOptions) ([]byte, error)
 	VerifyData(options KmsVerifyDataOptions) (KmsVerifyDataResult, error)
 	ListSigningAlgorithms(options KmsListSigningAlgorithmsOptions) ([]string, error)
 	GetPublicKey(options KmsGetPublicKeyOptions) (string, error)
@@ -96,24 +94,14 @@ func (k *KmsKeys) GetByName(options KmsGetKeyByNameOptions) (KmsGetKeyResult, er
 	return res.Key, nil
 }
 
-func (k *KmsKeys) GetById(options KmsGetKeyByIdOptions) (KmsGetKeyResult, error) {
-	res, err := api.CallKmsGetKeyByIdV1(k.client.httpClient, options)
-
-	if err != nil {
-		return KmsGetKeyResult{}, err
-	}
-
-	return res.Key, nil
-}
-
-func (k *KmsSigning) SignData(options KmsSignDataOptions) (KmsSignDataResult, error) {
+func (k *KmsSigning) SignData(options KmsSignDataOptions) ([]byte, error) {
 	res, err := api.CallKmsSignDataV1(k.client.httpClient, options)
 
 	if err != nil {
-		return KmsSignDataResult{}, err
+		return nil, err
 	}
 
-	return res, nil
+	return base64.StdEncoding.DecodeString(res.Signature)
 }
 
 func (k *KmsSigning) VerifyData(options KmsVerifyDataOptions) (KmsVerifyDataResult, error) {

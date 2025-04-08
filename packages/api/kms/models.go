@@ -36,6 +36,7 @@ type KmsVerifyDataV1Request struct {
 	Data             string `json:"data"` // Data must be base64 encoded
 	Signature        string `json:"signature"`
 	SigningAlgorithm string `json:"signingAlgorithm"`
+	IsDigest         bool   `json:"isDigest"`
 }
 
 type KmsVerifyDataV1Response struct {
@@ -93,11 +94,6 @@ type KmsDeleteKeyV1Response struct {
 
 type KmsGetKeyByNameV1Request struct {
 	KeyName   string
-	ProjectId string
-}
-
-type KmsGetKeyByIdV1Request struct {
-	KeyId     string
 	ProjectId string
 }
 
