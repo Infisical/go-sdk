@@ -71,7 +71,6 @@ type IssueSshHostHostCertV1Request struct {
 	PublicKey string `json:"publicKey"`
 }
 
-
 type IssueSshHostHostCertV1Response struct {
 	SerialNumber string `json:"serialNumber"`
 	SignedKey    string `json:"signedKey"`
