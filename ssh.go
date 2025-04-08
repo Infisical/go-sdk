@@ -9,6 +9,7 @@ type IssueSshCredsOptions = api.IssueSshCredsV1Request
 type GetSshHostsOptions = api.GetSshHostsV1Request
 type IssueSshHostUserCertOptions = api.IssueSshHostUserCertV1Request
 type IssueSshHostHostCertOptions = api.IssueSshHostHostCertV1Request
+type AddSshHostOptions = api.AddSshHostV1Request
 
 type SshInterface interface {
 	SignKey(options SignSshPublicKeyOptions) (api.SignSshPublicKeyV1Response, error)
@@ -17,6 +18,7 @@ type SshInterface interface {
 	GetSshHostUserCaPublicKey(sshHostId string) (string, error)
 	IssueSshHostUserCert(sshHostId string, options IssueSshHostUserCertOptions) (api.IssueSshHostUserCertV1Response, error)
 	IssueSshHostHostCert(sshHostId string, options IssueSshHostHostCertOptions) (api.IssueSshHostHostCertV1Response, error)
+	AddSshHost(options AddSshHostOptions) (api.AddSshHostV1Response, error)
 }
 
 type Ssh struct {
@@ -75,6 +77,14 @@ func (f *Ssh) IssueSshHostHostCert(sshHostId string, options IssueSshHostHostCer
 	res, err := api.CallIssueSshHostHostCertV1(f.client.httpClient, sshHostId, options)
 	if err != nil {
 		return api.IssueSshHostHostCertV1Response{}, err
+	}
+	return res, nil
+}
+
+func (f *Ssh) AddSshHost(options AddSshHostOptions) (api.AddSshHostV1Response, error) {
+	res, err := api.CallAddSshHostV1(f.client.httpClient, options)
+	if err != nil {
+		return api.AddSshHostV1Response{}, err
 	}
 	return res, nil
 }

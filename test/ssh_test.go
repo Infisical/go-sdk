@@ -2,7 +2,6 @@ package test
 
 // import (
 // 	"context"
-// 	"encoding/json"
 // 	"fmt"
 // 	"os"
 // 	"testing"
@@ -20,6 +19,16 @@ package test
 // 	_, err := client.Auth().UniversalAuthLogin("", "")
 // 	if err != nil {
 // 		fmt.Printf("Authentication failed: %v\n", err)
+// 		os.Exit(1)
+// 	}
+
+// 	// Test adding SSH host
+// 	_, err = client.Ssh().AddSshHost(infisical.AddSshHostOptions{
+// 		ProjectID: "",
+// 		Hostname:  "",
+// 	})
+// 	if err != nil {
+// 		fmt.Printf("Failed to add SSH host: %v\n", err)
 // 		os.Exit(1)
 // 	}
 
@@ -90,27 +99,27 @@ package test
 // 	fmt.Println("Issued credentials:")
 // 	fmt.Println(string(creds2Json))
 
-// 	// Test issuing SSH credentials
-// 	// creds, err := client.Ssh().IssueCredentials(infisical.IssueSshCredsOptions{
-// 	// 	CertificateTemplateID: "",
-// 	// 	Principals:            []string{"ec2-user"},
-// 	// })
+// 	Test issuing SSH credentials
+// 	creds, err := client.Ssh().IssueCredentials(infisical.IssueSshCredsOptions{
+// 		CertificateTemplateID: "",
+// 		Principals:            []string{"ec2-user"},
+// 	})
 
-// 	// if err != nil {
-// 	// 	t.Fatalf("Failed to issue SSH credentials: %v", err)
-// 	// }
+// 	if err != nil {
+// 		t.Fatalf("Failed to issue SSH credentials: %v", err)
+// 	}
 
-// 	// // Test signing SSH public key
-// 	// creds2, err := client.Ssh().SignKey(infisical.SignSshPublicKeyOptions{
-// 	// 	CertificateTemplateID: "",
-// 	// 	Principals:            []string{"ec2-user"},
-// 	// 	PublicKey:             "ssh-rsa ...",
-// 	// })
+// 	// Test signing SSH public key
+// 	creds2, err := client.Ssh().SignKey(infisical.SignSshPublicKeyOptions{
+// 		CertificateTemplateID: "",
+// 		Principals:            []string{"ec2-user"},
+// 		PublicKey:             "ssh-rsa ...",
+// 	})
 
-// 	// if err != nil {
-// 	// 	t.Fatalf("Failed to sign SSH public key: %v", err)
-// 	// }
+// 	if err != nil {
+// 		t.Fatalf("Failed to sign SSH public key: %v", err)
+// 	}
 
-// 	// fmt.Print("Newly-issued SSH credentials: ", creds)
-// 	// fmt.Print("Signed SSH credential: ", creds2)
+// 	fmt.Print("Newly-issued SSH credentials: ", creds)
+// 	fmt.Print("Signed SSH credential: ", creds2)
 // }
