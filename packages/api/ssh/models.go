@@ -55,14 +55,23 @@ type SshHost struct {
 
 type GetSshHostsV1Response []SshHost
 
-type IssueSshCredsFromHostV1Request struct {
+type IssueSshHostUserCertV1Request struct {
 	LoginUser string `json:"loginUser"`
 }
 
-type IssueSshCredsFromHostV1Response struct {
+type IssueSshHostUserCertV1Response struct {
 	SerialNumber string                `json:"serialNumber"`
 	SignedKey    string                `json:"signedKey"`
 	PrivateKey   string                `json:"privateKey"`
 	PublicKey    string                `json:"publicKey"`
 	KeyAlgorithm util.CertKeyAlgorithm `json:"keyAlgorithm"`
+}
+
+type IssueSshHostHostCertV1Request struct {
+	PublicKey string `json:"publicKey"`
+}
+
+type IssueSshHostHostCertV1Response struct {
+	SerialNumber string `json:"serialNumber"`
+	SignedKey    string `json:"signedKey"`
 }

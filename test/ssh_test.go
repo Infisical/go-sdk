@@ -58,8 +58,8 @@ package test
 // 	// Pick the first host
 // 	targetHost := hosts[0]
 
-// 	// Test issuing SSH credentials against host
-// 	creds, err := client.Ssh().IssueCredentialsFromHost(targetHost.ID, infisical.IssueSshCredsFromHostOptions{
+// 	// Test issuing SSH cert for user
+// 	creds, err := client.Ssh().IssueSshHostUserCert(targetHost.ID, infisical.IssueSshHostUserCertOptions{
 // 		LoginUser: "ec2-user", // or whatever login user is appropriate
 // 	})
 // 	if err != nil {
@@ -71,8 +71,24 @@ package test
 // 	if err != nil {
 // 		t.Fatalf("Failed to marshal issued credentials: %v", err)
 // 	}
-// 	fmt.Println("Issued credentials:")
+// 	fmt.Println("Issued user credentials:")
 // 	fmt.Println(string(credsJson))
+
+// 	// Test issuing SSH cert for host
+// 	creds2, err := client.Ssh().IssueSshHostHostCert(targetHost.ID, infisical.IssueSshHostHostCertOptions{
+// 		PublicKey: "",
+// 	})
+// 	if err != nil {
+// 		t.Fatalf("Failed to issue SSH credentials from host %s: %v", targetHost.ID, err)
+// 	}
+
+// 	// Display the credentials
+// 	creds2Json, err := json.MarshalIndent(creds2, "", "  ")
+// 	if err != nil {
+// 		t.Fatalf("Failed to marshal issued credentials: %v", err)
+// 	}
+// 	fmt.Println("Issued credentials:")
+// 	fmt.Println(string(creds2Json))
 
 // 	// Test issuing SSH credentials
 // 	// creds, err := client.Ssh().IssueCredentials(infisical.IssueSshCredsOptions{
