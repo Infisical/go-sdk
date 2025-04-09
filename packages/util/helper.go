@@ -84,6 +84,12 @@ func TryParseErrorBody(res *resty.Response) string {
 
 	type ErrorResponse struct {
 		Message string `json:"message"`
+		ReqId   string `json:"reqId"`
+	}
+
+	// stringify zod body entirely
+	if res.StatusCode() == 422 {
+		return body
 	}
 
 	// now we have a string, we need to try to parse it as json
@@ -95,6 +101,26 @@ func TryParseErrorBody(res *resty.Response) string {
 	}
 
 	return errorResponse.Message
+}
+
+func TryExtractReqId(res *resty.Response) string {
+	if res == nil || !res.IsError() {
+		return ""
+	}
+
+	type ErrorResponse struct {
+		ReqId string `json:"reqId"`
+	}
+
+	var errorResponse ErrorResponse
+
+	err := json.Unmarshal([]byte(res.String()), &errorResponse)
+
+	if err != nil {
+		return ""
+	}
+
+	return errorResponse.ReqId
 }
 
 func SleepWithContext(ctx context.Context, duration time.Duration) error {
