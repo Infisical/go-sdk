@@ -37,9 +37,13 @@ type IssueSshCredsV1Response struct {
 
 type GetSshHostsV1Request struct{}
 
+type AllowedPrincipals struct {
+	Usernames []string `json:"usernames"`
+}
+
 type SshHostLoginMapping struct {
-	LoginUser         string   `json:"loginUser"`
-	AllowedPrincipals []string `json:"allowedPrincipals"`
+	LoginUser         string          `json:"loginUser"`
+	AllowedPrincipals AllowedPrincipals `json:"allowedPrincipals"`
 }
 
 type SshHost struct {
