@@ -42,7 +42,7 @@ type AllowedPrincipals struct {
 }
 
 type SshHostLoginMapping struct {
-	LoginUser         string          `json:"loginUser"`
+	LoginUser         string            `json:"loginUser"`
 	AllowedPrincipals AllowedPrincipals `json:"allowedPrincipals"`
 }
 
