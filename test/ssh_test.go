@@ -23,35 +23,40 @@ package test
 // 	}
 
 // 	// Test adding SSH host
-// 	// _, err = client.Ssh().AddSshHost(infisical.AddSshHostOptions{
-// 	// 	ProjectID: "",
-// 	// 	Hostname:  "",
-// 	// })
-// 	// if err != nil {
-// 	// 	fmt.Printf("Failed to add SSH host: %v\n", err)
-// 	// 	os.Exit(1)
-// 	// }
+// 	_, err = client.Ssh().AddSshHost(infisical.AddSshHostOptions{
+// 		ProjectID: "",
+// 		Hostname:  "",
+// 	})
+// 	if err != nil {
+// 		fmt.Printf("Failed to add SSH host: %v\n", err)
+// 		os.Exit(1)
+// 	}
 
 // 	// Test getting SSH hosts the user has access to
-// 	// hosts, err := client.Ssh().GetSshHosts(infisical.GetSshHostsOptions{})
-// 	// if err != nil {
-// 	// 	t.Fatalf("Failed to fetch SSH hosts: %v", err)
-// 	// }
+// 	hosts, err := client.Ssh().GetSshHosts(infisical.GetSshHostsOptions{})
+// 	if err != nil {
+// 		t.Fatalf("Failed to fetch SSH hosts: %v", err)
+// 	}
 
-// 	// if len(hosts) == 0 {
-// 	// 	t.Fatalf("No SSH hosts returned")
-// 	// }
+// 	if len(hosts) == 0 {
+// 		t.Fatalf("No SSH hosts returned")
+// 	}
 
-// 	// fmt.Println("Got SSH hosts:")
-// 	// for _, host := range hosts {
-// 	// 	fmt.Printf("- Host: %s (ID: %s)\n", host.Hostname, host.ID)
-// 	// }
+// 	fmt.Println("Got SSH hosts:")
+// 	for _, host := range hosts {
+// 		fmt.Printf("- Host: %s (ID: %s)\n", host.Hostname, host.ID)
+// 	}
 
-// 	// // Test getting user CA public key for first host
-// 	// userCaKey, err := client.Ssh().GetSshHostUserCaPublicKey(hosts[0].ID)
-// 	// if err != nil {
-// 	// 	t.Fatalf("Failed to get user CA public key: %v", err)
-// 	// }
+// 	// Test getting user CA public key for first host
+// 	userCaKey, err := client.Ssh().GetSshHostUserCaPublicKey(hosts[0].ID)
+// 	if err != nil {
+// 		t.Fatalf("Failed to get user CA public key: %v", err)
+// 	}
+
+// 	hostCaKey, err := client.Ssh().GetSshHostHostCaPublicKey(hosts[0].ID)
+// 	if err != nil {
+// 		t.Fatalf("Failed to get host CA public key: %v", err)
+// 	}
 
 // 	// fmt.Printf("User CA Public Key for host %s:\n%s\n", hosts[0].Hostname, userCaKey)
 

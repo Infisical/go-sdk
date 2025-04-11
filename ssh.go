@@ -16,6 +16,7 @@ type SshInterface interface {
 	IssueCredentials(options IssueSshCredsOptions) (api.IssueSshCredsV1Response, error)
 	GetSshHosts(options GetSshHostsOptions) (api.GetSshHostsV1Response, error)
 	GetSshHostUserCaPublicKey(sshHostId string) (string, error)
+	GetSshHostHostCaPublicKey(sshHostId string) (string, error)
 	IssueSshHostUserCert(sshHostId string, options IssueSshHostUserCertOptions) (api.IssueSshHostUserCertV1Response, error)
 	IssueSshHostHostCert(sshHostId string, options IssueSshHostHostCertOptions) (api.IssueSshHostHostCertV1Response, error)
 	AddSshHost(options AddSshHostOptions) (api.AddSshHostV1Response, error)
@@ -57,6 +58,16 @@ func (f *Ssh) GetSshHosts(options GetSshHostsOptions) (api.GetSshHostsV1Response
 
 func (f *Ssh) GetSshHostUserCaPublicKey(sshHostId string) (string, error) {
 	res, err := api.GetSshHostUserCaPublicKeyV1(f.client.httpClient, sshHostId)
+
+	if err != nil {
+		return "", err
+	}
+
+	return res, nil
+}
+
+func (f *Ssh) GetSshHostHostCaPublicKey(sshHostId string) (string, error) {
+	res, err := api.GetSshHostHostCaPublicKeyV1(f.client.httpClient, sshHostId)
 
 	if err != nil {
 		return "", err
