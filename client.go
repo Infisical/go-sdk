@@ -201,7 +201,6 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 					}
 				}
 
-				fmt.Printf("isConditionMet: %v\n", isConditionMet)
 				return isConditionMet
 
 			})
