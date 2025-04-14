@@ -22,7 +22,7 @@ type KmsSignDataV1Request struct {
 	KeyId            string
 	Data             string `json:"data"`
 	SigningAlgorithm string `json:"signingAlgorithm"`
-	IsDigest         bool   `json:"isDigest"`
+	IsPreDigested    bool   `json:"preDigested"`
 }
 
 type KmsSignDataV1Response struct {
@@ -36,7 +36,7 @@ type KmsVerifyDataV1Request struct {
 	Data             string `json:"data"` // Data must be base64 encoded
 	Signature        string `json:"signature"`
 	SigningAlgorithm string `json:"signingAlgorithm"`
-	IsDigest         bool   `json:"isDigest"`
+	IsPreDigested    bool   `json:"preDigested"`
 }
 
 type KmsVerifyDataV1Response struct {
