@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/rand"
+	"net"
 	"reflect"
 	"strconv"
 	"strings"
@@ -159,12 +161,17 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 			SetRetryWaitTime(1 * time.Second).
 			SetRetryMaxWaitTime(30 * time.Second).
 			SetRetryAfter(func(c *resty.Client, r *resty.Response) (time.Duration, error) {
-				attempt := r.Request.Attempt + 1
 
+				attempt := r.Request.Attempt + 1
 				if attempt <= 0 {
 					attempt = 1
 				}
 				waitTime := math.Min(float64(c.RetryWaitTime)*math.Pow(2, float64(attempt-1)), float64(c.RetryMaxWaitTime))
+
+				// Add jitter of +/-20%
+				jitterFactor := 0.8 + (rand.Float64() * 0.4)
+				waitTime = waitTime * jitterFactor
+
 				waitDuration := time.Duration(waitTime)
 				return waitDuration, nil
 			}).
@@ -194,6 +201,11 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 				}
 
 				isConditionMet := false
+
+				var netErr net.Error
+				if errors.As(err, &netErr) {
+					return true
+				}
 
 				for _, netErr := range networkErrors {
 					if strings.Contains(strings.ToLower(errMsg), netErr) {
