@@ -6,8 +6,12 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"math"
+	"math/rand"
+	"net"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -152,6 +156,66 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 		c.httpClient = resty.New().
 			SetHeader("User-Agent", config.UserAgent).
 			SetBaseURL(config.SiteUrl)
+
+		c.httpClient.SetRetryCount(3).
+			SetRetryWaitTime(1 * time.Second).
+			SetRetryMaxWaitTime(30 * time.Second).
+			SetRetryAfter(func(c *resty.Client, r *resty.Response) (time.Duration, error) {
+
+				attempt := r.Request.Attempt + 1
+				if attempt <= 0 {
+					attempt = 1
+				}
+				waitTime := math.Min(float64(c.RetryWaitTime)*math.Pow(2, float64(attempt-1)), float64(c.RetryMaxWaitTime))
+
+				// Add jitter of +/-20%
+				jitterFactor := 0.8 + (rand.Float64() * 0.4)
+				waitTime = waitTime * jitterFactor
+
+				waitDuration := time.Duration(waitTime)
+				return waitDuration, nil
+			}).
+			AddRetryCondition(func(r *resty.Response, err error) bool {
+				// don't retry if there's no error or it's a timeout
+				if err == nil || errors.Is(err, context.DeadlineExceeded) {
+					return false
+				}
+
+				errMsg := err.Error()
+
+				networkErrors := []string{
+					"connection refused",
+					"connection reset",
+					"network",
+					"connection",
+					"no such host",
+					"i/o timeout",
+					"dial tcp",
+					"broken pipe",
+					"wsaetimeout",
+					"wsaeconnreset",
+					"econnreset",
+					"econnrefused",
+					"ehostunreach",
+					"enetunreach",
+				}
+
+				isConditionMet := false
+
+				var netErr net.Error
+				if errors.As(err, &netErr) {
+					return true
+				}
+
+				for _, netErr := range networkErrors {
+					if strings.Contains(strings.ToLower(errMsg), netErr) {
+						isConditionMet = true
+					}
+				}
+
+				return isConditionMet
+
+			})
 
 	} else {
 		c.httpClient.
