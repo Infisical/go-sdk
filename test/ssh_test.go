@@ -1,4 +1,4 @@
-package test
+// package test
 
 // import (
 // 	"context"
@@ -26,6 +26,7 @@ package test
 // 	_, err = client.Ssh().AddSshHost(infisical.AddSshHostOptions{
 // 		ProjectID: "",
 // 		Hostname:  "",
+// 		Alias:     "",
 // 	})
 // 	if err != nil {
 // 		fmt.Printf("Failed to add SSH host: %v\n", err)
@@ -48,15 +49,15 @@ package test
 // 	}
 
 // 	// Test getting user CA public key for first host
-// 	userCaKey, err := client.Ssh().GetSshHostUserCaPublicKey(hosts[0].ID)
-// 	if err != nil {
-// 		t.Fatalf("Failed to get user CA public key: %v", err)
-// 	}
+// 	// userCaKey, err := client.Ssh().GetSshHostUserCaPublicKey(hosts[0].ID)
+// 	// if err != nil {
+// 	// 	t.Fatalf("Failed to get user CA public key: %v", err)
+// 	// }
 
-// 	hostCaKey, err := client.Ssh().GetSshHostHostCaPublicKey(hosts[0].ID)
-// 	if err != nil {
-// 		t.Fatalf("Failed to get host CA public key: %v", err)
-// 	}
+// 	// hostCaKey, err := client.Ssh().GetSshHostHostCaPublicKey(hosts[0].ID)
+// 	// if err != nil {
+// 	// 	t.Fatalf("Failed to get host CA public key: %v", err)
+// 	// }
 
 // 	// fmt.Printf("User CA Public Key for host %s:\n%s\n", hosts[0].Hostname, userCaKey)
 
