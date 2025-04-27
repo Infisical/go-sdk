@@ -50,6 +50,7 @@ type SshHost struct {
 	ID            string                `json:"id"`
 	ProjectID     string                `json:"projectId"`
 	Hostname      string                `json:"hostname"`
+	Alias         string                `json:"alias,omitempty"`
 	UserCertTtl   string                `json:"userCertTtl"`
 	HostCertTtl   string                `json:"hostCertTtl"`
 	UserSshCaId   string                `json:"userSshCaId"`
@@ -83,6 +84,7 @@ type IssueSshHostHostCertV1Response struct {
 type AddSshHostV1Request struct {
 	ProjectID     string                `json:"projectId"`
 	Hostname      string                `json:"hostname"`
+	Alias         string                `json:"alias,omitempty"`
 	UserCertTtl   string                `json:"userCertTtl,omitempty"`
 	HostCertTtl   string                `json:"hostCertTtl,omitempty"`
 	UserSshCaId   string                `json:"userSshCaId,omitempty"`
