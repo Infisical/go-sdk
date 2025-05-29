@@ -2,11 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/hashicorp/golang-lru/v2/expirable"
-	"github.com/infisical/go-sdk/packages/errors"
+	sdkErrors "github.com/infisical/go-sdk/packages/errors"
 	"github.com/infisical/go-sdk/packages/util"
 )
 
@@ -40,11 +41,17 @@ func CallRetrieveSecretV3(cache *expirable.LRU[string, interface{}], httpClient 
 	}
 
 	queryParams := map[string]string{
-		"workspaceId":     request.ProjectID,
 		"environment":     request.Environment,
 		"secretPath":      request.SecretPath,
 		"include_imports": fmt.Sprintf("%t", request.IncludeImports),
 		"type":            request.Type,
+	}
+	if request.ProjectID != "" {
+		queryParams["workspaceId"] = request.ProjectID
+	} else if request.ProjectSlug != "" {
+		queryParams["workspaceSlug"] = request.ProjectSlug
+	} else {
+		return RetrieveSecretV3RawResponse{}, errors.New("projectId or projectSlug is required")
 	}
 
 	if request.Version != 0 {
@@ -58,11 +65,11 @@ func CallRetrieveSecretV3(cache *expirable.LRU[string, interface{}], httpClient 
 	res, err := req.Get(fmt.Sprintf("/v3/secrets/raw/%s", request.SecretKey))
 
 	if err != nil {
-		return RetrieveSecretV3RawResponse{}, errors.NewRequestError(callRetrieveSecretV3RawOperation, err)
+		return RetrieveSecretV3RawResponse{}, sdkErrors.NewRequestError(callRetrieveSecretV3RawOperation, err)
 	}
 
 	if res.IsError() {
-		return RetrieveSecretV3RawResponse{}, errors.NewAPIErrorWithResponse(callRetrieveSecretV3RawOperation, res)
+		return RetrieveSecretV3RawResponse{}, sdkErrors.NewAPIErrorWithResponse(callRetrieveSecretV3RawOperation, res)
 	}
 
 	if cache != nil {

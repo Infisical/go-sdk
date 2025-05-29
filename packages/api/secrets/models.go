@@ -26,7 +26,8 @@ type ListSecretsV3RawResponse struct {
 type RetrieveSecretV3RawRequest struct {
 	SecretKey string `json:"secretKey"`
 
-	ProjectID      string `json:"workspaceId"`
+	ProjectSlug    string `json:"workspaceSlug,omitempty"`
+	ProjectID      string `json:"workspaceId,omitempty"`
 	Environment    string `json:"environment"`
 	SecretPath     string `json:"secretPath,omitempty"`
 	Type           string `json:"type,omitempty"`
