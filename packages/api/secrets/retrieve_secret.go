@@ -41,10 +41,11 @@ func CallRetrieveSecretV3(cache *expirable.LRU[string, interface{}], httpClient 
 	}
 
 	queryParams := map[string]string{
-		"environment":     request.Environment,
-		"secretPath":      request.SecretPath,
-		"include_imports": fmt.Sprintf("%t", request.IncludeImports),
-		"type":            request.Type,
+		"environment":            request.Environment,
+		"secretPath":             request.SecretPath,
+		"expandSecretReferences": fmt.Sprintf("%t", request.ExpandSecretReferences),
+		"include_imports":        fmt.Sprintf("%t", request.IncludeImports),
+		"type":                   request.Type,
 	}
 	if request.ProjectID != "" {
 		queryParams["workspaceId"] = request.ProjectID
