@@ -111,6 +111,15 @@ func (c *InfisicalClient) setAccessToken(tokenDetails MachineIdentityCredential,
 	c.httpClient.SetAuthToken(c.tokenDetails.AccessToken)
 }
 
+func (c *InfisicalClient) clearAccessToken() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.tokenDetails = MachineIdentityCredential{}
+	c.authMethod = ""
+	c.httpClient.SetAuthScheme("")
+	c.httpClient.SetAuthToken("")
+}
 func (c *InfisicalClient) setPlainAccessToken(accessToken string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
