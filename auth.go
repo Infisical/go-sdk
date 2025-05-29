@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -36,6 +37,7 @@ type AuthInterface interface {
 	GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath string) (credential MachineIdentityCredential, err error)
 	AwsIamAuthLogin(identityId string) (credential MachineIdentityCredential, err error)
 	OidcAuthLogin(identityId string, jwt string) (credential MachineIdentityCredential, err error)
+	RevokeAccessToken() error
 }
 
 type Auth struct {
@@ -50,6 +52,22 @@ func (a *Auth) GetAccessToken() string {
 	return a.client.tokenDetails.AccessToken
 }
 
+func (a *Auth) RevokeAccessToken() error {
+	if a.client.tokenDetails.AccessToken == "" {
+		return errors.New("sdk client is not authenticated, cannot revoke access token")
+	}
+
+	_, err := api.CallRevokeAccessToken(a.client.httpClient, api.RevokeAccessTokenRequest{
+		AccessToken: a.client.tokenDetails.AccessToken,
+	})
+
+	if err != nil {
+		return err
+	}
+	a.client.clearAccessToken()
+
+	return nil
+}
 func (a *Auth) UniversalAuthLogin(clientID string, clientSecret string) (credential MachineIdentityCredential, err error) {
 
 	if clientID == "" {

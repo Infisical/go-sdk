@@ -1,5 +1,14 @@
 package api
 
+// Revoke access token:
+type RevokeAccessTokenRequest struct {
+	AccessToken string `json:"accessToken"`
+}
+
+type RevokeAccessTokenResponse struct {
+	Message string `json:"message"`
+}
+
 // Universal auth:
 type UniversalAuthLoginRequest struct {
 	ClientID     string `json:"clientId"`
