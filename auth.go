@@ -50,6 +50,13 @@ func (a *Auth) SetAccessToken(accessToken string) {
 }
 
 func (a *Auth) GetAccessToken() string {
+	// case: user has set an access token manually, so we get it directly from the credential
+	if a.client.authMethod == util.ACCESS_TOKEN {
+		if parsedCreds, ok := a.client.credential.(models.AccessTokenCredential); ok {
+			return parsedCreds.AccessToken
+		}
+		return ""
+	}
 	return a.client.tokenDetails.AccessToken
 }
 
