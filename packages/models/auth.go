@@ -42,3 +42,8 @@ type OIDCCredential struct {
 	IdentityID string
 	JWT        string
 }
+
+type JWTCredential struct {
+	IdentityID string
+	JWT        string
+}

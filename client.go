@@ -319,6 +319,12 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 
 			return MachineIdentityCredential{}, fmt.Errorf("failed to parse AWSIAMCredential")
 		},
+		util.JWT_AUTH: func(cred interface{}) (credential MachineIdentityCredential, err error) {
+			if parsedCreds, ok := cred.(models.JWTCredential); ok {
+				return c.auth.JwtAuthLogin(parsedCreds.IdentityID, parsedCreds.JWT)
+			}
+			return MachineIdentityCredential{}, fmt.Errorf("failed to parse JWTCredential")
+		},
 	}
 
 	const RE_AUTHENTICATION_INTERVAL_BUFFER = 2

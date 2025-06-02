@@ -30,6 +30,7 @@ type AuthInterface interface {
 	SetAccessToken(accessToken string)
 	GetAccessToken() string
 	UniversalAuthLogin(clientID string, clientSecret string) (credential MachineIdentityCredential, err error)
+	JwtAuthLogin(identityID string, jwt string) (credential MachineIdentityCredential, err error)
 	KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (credential MachineIdentityCredential, err error)
 	KubernetesRawServiceAccountTokenLogin(identityID string, serviceAccountToken string) (credential MachineIdentityCredential, err error)
 	AzureAuthLogin(identityID string, resource string) (credential MachineIdentityCredential, err error)
@@ -332,6 +333,24 @@ func (a *Auth) OidcAuthLogin(identityId string, jwt string) (credential MachineI
 	)
 	return credential, nil
 
+}
+
+func (a *Auth) JwtAuthLogin(identityID string, jwt string) (credential MachineIdentityCredential, err error) {
+	credential, err = api.CallJwtAuthLogin(a.client.httpClient, api.JwtAuthLoginRequest{
+		IdentityID: identityID,
+		JWT:        jwt,
+	})
+
+	if err != nil {
+		return MachineIdentityCredential{}, err
+	}
+
+	a.client.setAccessToken(
+		credential,
+		models.JWTCredential{IdentityID: identityID, JWT: jwt},
+		util.JWT_AUTH,
+	)
+	return credential, nil
 }
 
 func NewAuth(client *InfisicalClient) AuthInterface {
