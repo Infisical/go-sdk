@@ -52,6 +52,7 @@ const (
 	KUBERNETES     AuthMethod = "KUBERNETES"
 	AZURE          AuthMethod = "AZURE"
 	OIDC_AUTH      AuthMethod = "OIDC_AUTH"
+	JWT_AUTH       AuthMethod = "JWT_AUTH"
 )
 
 // SSH related:

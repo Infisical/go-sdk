@@ -1,5 +1,11 @@
 package api
 
+// JWT auth:
+type JwtAuthLoginRequest struct {
+	IdentityID string `json:"identityId"`
+	JWT        string `json:"jwt"`
+}
+
 // Revoke access token:
 type RevokeAccessTokenRequest struct {
 	AccessToken string `json:"accessToken"`
