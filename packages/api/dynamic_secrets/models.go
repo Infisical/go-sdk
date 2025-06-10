@@ -5,11 +5,12 @@ import (
 )
 
 type CreateDynamicSecretLeaseV1Request struct {
-	DynamicSecretName string `json:"dynamicSecretName"`
-	ProjectSlug       string `json:"projectSlug"`
-	TTL               string `json:"ttl"`
-	SecretPath        string `json:"path"`
-	EnvironmentSlug   string `json:"environmentSlug"`
+	DynamicSecretName string         `json:"dynamicSecretName"`
+	ProjectSlug       string         `json:"projectSlug"`
+	TTL               string         `json:"ttl"`
+	SecretPath        string         `json:"path"`
+	EnvironmentSlug   string         `json:"environmentSlug"`
+	Config            map[string]any `json:"config"`
 }
 
 type CreateDynamicSecretLeaseV1Response struct {
