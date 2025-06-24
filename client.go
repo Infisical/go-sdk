@@ -128,6 +128,7 @@ func (c *InfisicalClient) setPlainAccessToken(accessToken string) {
 	c.httpClient.SetAuthScheme("Bearer")
 	c.httpClient.SetAuthToken(accessToken)
 
+	c.tokenDetails.AccessToken = accessToken
 	c.credential = models.AccessTokenCredential{AccessToken: accessToken}
 }
 
