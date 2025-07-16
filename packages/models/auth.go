@@ -47,3 +47,19 @@ type JWTCredential struct {
 	IdentityID string
 	JWT        string
 }
+
+type LDAPCredential struct {
+	IdentityID string
+	Username   string
+	Password   string
+}
+
+type OCICredential struct {
+	IdentityID  string
+	PrivateKey  string
+	Fingerprint string
+	UserID      string
+	TenancyID   string
+	Region      string
+	Passphrase  *string
+}

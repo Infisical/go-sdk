@@ -59,6 +59,8 @@ const (
 	AZURE          AuthMethod = "AZURE"
 	OIDC_AUTH      AuthMethod = "OIDC_AUTH"
 	JWT_AUTH       AuthMethod = "JWT_AUTH"
+	LDAP_AUTH      AuthMethod = "LDAP_AUTH"
+	OCI_AUTH       AuthMethod = "OCI_AUTH"
 )
 
 // SSH related:

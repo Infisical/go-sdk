@@ -401,11 +401,30 @@ func (a *Auth) OciAuthLogin(options OciAuthLoginOptions) (credential MachineIden
 		}
 	}
 
-	return api.CallOciAuthLogin(a.client.httpClient, api.OciAuthLoginRequest{
+	credential, err = api.CallOciAuthLogin(a.client.httpClient, api.OciAuthLoginRequest{
 		IdentityID: options.IdentityID,
 		UserOcid:   options.UserID,
 		Headers:    headersMap,
 	})
+
+	if err != nil {
+		return MachineIdentityCredential{}, err
+	}
+
+	a.client.setAccessToken(
+		credential,
+		models.OCICredential{
+			IdentityID:  options.IdentityID,
+			PrivateKey:  options.PrivateKey,
+			Fingerprint: options.Fingerprint,
+			UserID:      options.UserID,
+			TenancyID:   options.TenancyID,
+			Region:      options.Region,
+			Passphrase:  options.Passphrase,
+		},
+		util.OCI_AUTH,
+	)
+	return credential, nil
 }
 
 func (a *Auth) LdapAuthLogin(identityID string, username string, password string) (credential MachineIdentityCredential, err error) {
@@ -413,11 +432,23 @@ func (a *Auth) LdapAuthLogin(identityID string, username string, password string
 		identityID = os.Getenv(util.INFISICAL_LDAP_AUTH_IDENTITY_ID_ENV_NAME)
 	}
 
-	return api.CallLdapAuthLogin(a.client.httpClient, api.LdapAuthLoginRequest{
+	credential, err = api.CallLdapAuthLogin(a.client.httpClient, api.LdapAuthLoginRequest{
 		IdentityID: identityID,
 		Username:   username,
 		Password:   password,
 	})
+
+	if err != nil {
+		return MachineIdentityCredential{}, err
+	}
+
+	a.client.setAccessToken(
+		credential,
+		models.LDAPCredential{IdentityID: identityID, Username: username, Password: password},
+		util.LDAP_AUTH,
+	)
+
+	return credential, nil
 }
 
 func NewAuth(client *InfisicalClient) AuthInterface {
