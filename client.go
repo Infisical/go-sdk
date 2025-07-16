@@ -328,6 +328,26 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 			}
 			return MachineIdentityCredential{}, fmt.Errorf("failed to parse JWTCredential")
 		},
+		util.LDAP_AUTH: func(cred interface{}) (credential MachineIdentityCredential, err error) {
+			if parsedCreds, ok := cred.(models.LDAPCredential); ok {
+				return c.auth.LdapAuthLogin(parsedCreds.IdentityID, parsedCreds.Username, parsedCreds.Password)
+			}
+			return MachineIdentityCredential{}, fmt.Errorf("failed to parse LDAPCredential")
+		},
+		util.OCI_AUTH: func(cred interface{}) (credential MachineIdentityCredential, err error) {
+			if parsedCreds, ok := cred.(models.OCICredential); ok {
+				return c.auth.OciAuthLogin(OciAuthLoginOptions{
+					IdentityID:  parsedCreds.IdentityID,
+					PrivateKey:  parsedCreds.PrivateKey,
+					Fingerprint: parsedCreds.Fingerprint,
+					UserID:      parsedCreds.UserID,
+					TenancyID:   parsedCreds.TenancyID,
+					Region:      parsedCreds.Region,
+					Passphrase:  parsedCreds.Passphrase,
+				})
+			}
+			return MachineIdentityCredential{}, fmt.Errorf("failed to parse OCICredential")
+		},
 	}
 
 	const RE_AUTHENTICATION_INTERVAL_BUFFER = 2
