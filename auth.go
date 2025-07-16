@@ -38,7 +38,7 @@ type AuthInterface interface {
 	AwsIamAuthLogin(identityId string) (credential MachineIdentityCredential, err error)
 	OidcAuthLogin(identityId string, jwt string) (credential MachineIdentityCredential, err error)
 	OciAuthLogin(options OciAuthLoginOptions) (credential MachineIdentityCredential, err error)
-	LDAPAuthLogin(identityID string, username string, password string) (credential MachineIdentityCredential, err error)
+	LdapAuthLogin(identityID string, username string, password string) (credential MachineIdentityCredential, err error)
 	RevokeAccessToken() error
 }
 
@@ -408,7 +408,7 @@ func (a *Auth) OciAuthLogin(options OciAuthLoginOptions) (credential MachineIden
 	})
 }
 
-func (a *Auth) LDAPAuthLogin(identityID string, username string, password string) (credential MachineIdentityCredential, err error) {
+func (a *Auth) LdapAuthLogin(identityID string, username string, password string) (credential MachineIdentityCredential, err error) {
 	if identityID == "" {
 		identityID = os.Getenv(util.INFISICAL_LDAP_AUTH_IDENTITY_ID_ENV_NAME)
 	}
