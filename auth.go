@@ -15,6 +15,7 @@ import (
 	api "github.com/infisical/go-sdk/packages/api/auth"
 	"github.com/infisical/go-sdk/packages/models"
 	"github.com/infisical/go-sdk/packages/util"
+	"github.com/oracle/oci-go-sdk/v65/common"
 
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 )
@@ -23,8 +24,6 @@ type KubernetesAuthLoginOptions struct {
 	IdentityID              string
 	ServiceAccountTokenPath string
 }
-
-// func epochTime() time.Time { return time.Unix(0, 0) }
 
 type AuthInterface interface {
 	SetAccessToken(accessToken string)
@@ -38,6 +37,8 @@ type AuthInterface interface {
 	GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath string) (credential MachineIdentityCredential, err error)
 	AwsIamAuthLogin(identityId string) (credential MachineIdentityCredential, err error)
 	OidcAuthLogin(identityId string, jwt string) (credential MachineIdentityCredential, err error)
+	OciAuthLogin(options OciAuthLoginOptions) (credential MachineIdentityCredential, err error)
+	LDAPAuthLogin(identityID string, username string, password string) (credential MachineIdentityCredential, err error)
 	RevokeAccessToken() error
 }
 
@@ -358,6 +359,65 @@ func (a *Auth) JwtAuthLogin(identityID string, jwt string) (credential MachineId
 		util.JWT_AUTH,
 	)
 	return credential, nil
+}
+
+func (a *Auth) OciAuthLogin(options OciAuthLoginOptions) (credential MachineIdentityCredential, err error) {
+
+	if options.IdentityID == "" {
+		options.IdentityID = os.Getenv(util.INFISICAL_OCI_AUTH_IDENTITY_ID_ENV_NAME)
+	}
+
+	provider := common.NewRawConfigurationProvider(
+		options.TenancyID,
+		options.UserID,
+		options.Region,
+		options.Fingerprint,
+		options.PrivateKey,
+		options.Passphrase,
+	)
+
+	requestURL := fmt.Sprintf("https://identity.%s.oraclecloud.com/20160918/users/%s", options.Region, options.UserID)
+
+	req, err := http.NewRequest("GET", requestURL, nil)
+	if err != nil {
+		return MachineIdentityCredential{}, fmt.Errorf("OciAuthLogin: failed to create request: %w", err)
+	}
+
+	req.Header.Set("host", fmt.Sprintf("identity.%s.oraclecloud.com", options.Region))
+	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
+
+	signer := common.DefaultRequestSigner(provider)
+	err = signer.Sign(req)
+	if err != nil {
+		return MachineIdentityCredential{}, fmt.Errorf("OciAuthLogin: failed to sign request: %w", err)
+	}
+
+	headersMap := make(map[string]string)
+	for name, values := range req.Header {
+		if len(values) > 0 {
+			// Convert header names to lowercase to match OCI signature expectations
+			lowerName := strings.ToLower(name)
+			headersMap[lowerName] = values[0]
+		}
+	}
+
+	return api.CallOciAuthLogin(a.client.httpClient, api.OciAuthLoginRequest{
+		IdentityID: options.IdentityID,
+		UserOcid:   options.UserID,
+		Headers:    headersMap,
+	})
+}
+
+func (a *Auth) LDAPAuthLogin(identityID string, username string, password string) (credential MachineIdentityCredential, err error) {
+	if identityID == "" {
+		identityID = os.Getenv(util.INFISICAL_LDAP_AUTH_IDENTITY_ID_ENV_NAME)
+	}
+
+	return api.CallLdapAuthLogin(a.client.httpClient, api.LdapAuthLoginRequest{
+		IdentityID: identityID,
+		Username:   username,
+		Password:   password,
+	})
 }
 
 func NewAuth(client *InfisicalClient) AuthInterface {

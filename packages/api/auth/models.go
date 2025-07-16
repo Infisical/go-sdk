@@ -59,3 +59,15 @@ type MachineIdentityAuthLoginResponse struct {
 type RenewAccessTokenRequest struct {
 	AccessToken string `json:"accessToken"`
 }
+
+type OciAuthLoginRequest struct {
+	IdentityID string            `json:"identityId"`
+	UserOcid   string            `json:"userOcid"`
+	Headers    map[string]string `json:"headers"`
+}
+
+type LdapAuthLoginRequest struct {
+	IdentityID string `json:"identityId"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+}
