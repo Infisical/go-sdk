@@ -6,6 +6,16 @@ import (
 	"github.com/infisical/go-sdk/packages/models"
 )
 
+type OciAuthLoginOptions struct {
+	IdentityID  string
+	PrivateKey  string
+	Fingerprint string
+	UserID      string
+	TenancyID   string
+	Region      string
+	Passphrase  *string
+}
+
 type MachineIdentityCredential = api.MachineIdentityAuthLoginResponse
 
 type Secret = models.Secret
