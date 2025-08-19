@@ -48,7 +48,7 @@ func (s *Secrets) List(options ListSecretsOptions) ([]models.Secret, error) {
 	}
 
 	if options.Recursive {
-		util.EnsureUniqueSecretsByKey(&res.Secrets)
+		util.EnsureUniqueSecretsByKey(&res.Secrets, options.SkipUniqueValidation)
 	}
 
 	secrets := append([]models.Secret(nil), res.Secrets...) // Clone main secrets slice, we will modify this if imports are enabled
