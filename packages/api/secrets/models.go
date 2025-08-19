@@ -14,7 +14,7 @@ type ListSecretsV3RawRequest struct {
 	IncludeImports         bool   `json:"include_imports"`
 	Recursive              bool   `json:"recursive"`
 	SecretPath             string `json:"secretPath,omitempty"`
-	SkipUniqueValidation   bool   `json:"-"`
+	SkipUniqueValidation   bool   `json:"skip_unique_validation,omitempty"`
 }
 
 type ListSecretsV3RawResponse struct {

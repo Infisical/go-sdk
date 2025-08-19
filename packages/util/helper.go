@@ -42,10 +42,10 @@ func EnsureUniqueSecretsByKey(secrets *[]models.Secret, skipUniqueKey bool) {
 			// Create a composite key using both SecretPath and SecretKey
 			key = secret.SecretPath + ":" + secret.SecretKey
 		} else {
-			// Use only SecretKey for global uniqueness (original behavior)
+			// Use only SecretKey for global uniqueness
 			key = secret.SecretKey
 		}
-		secretMap[key] = secret // Maps will overwrite existing entry with the same key
+		secretMap[key] = secret
 	}
 
 	// Clear the slice
