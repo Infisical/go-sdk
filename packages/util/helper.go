@@ -32,12 +32,20 @@ func PrintWarning(message string) {
 	fmt.Fprintf(os.Stderr, "[Infisical] Warning: %v \n", message)
 }
 
-func EnsureUniqueSecretsByKey(secrets *[]models.Secret) {
+func EnsureUniqueSecretsByKey(secrets *[]models.Secret, skipUniqueKey bool) {
 	secretMap := make(map[string]models.Secret)
 
 	// Move secrets to a map to ensure uniqueness
 	for _, secret := range *secrets {
-		secretMap[secret.SecretKey] = secret // Maps will overwrite existing entry with the same key
+		var key string
+		if skipUniqueKey {
+			// Create a composite key using both SecretPath and SecretKey
+			key = secret.SecretPath + ":" + secret.SecretKey
+		} else {
+			// Use only SecretKey for global uniqueness (original behavior)
+			key = secret.SecretKey
+		}
+		secretMap[key] = secret // Maps will overwrite existing entry with the same key
 	}
 
 	// Clear the slice
