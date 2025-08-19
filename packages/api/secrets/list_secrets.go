@@ -45,7 +45,6 @@ func CallListSecretsV3(cache *expirable.LRU[string, interface{}], httpClient *re
 			"expandSecretReferences": fmt.Sprintf("%t", request.ExpandSecretReferences),
 			"include_imports":        fmt.Sprintf("%t", request.IncludeImports),
 			"recursive":              fmt.Sprintf("%t", request.Recursive),
-			"skip_unique_validation": fmt.Sprintf("%t", request.SkipUniqueValidation),
 		}).Get("/v3/secrets/raw")
 
 	if err != nil {
