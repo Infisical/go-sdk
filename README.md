@@ -12,7 +12,7 @@
 
 <h4 align="center">
   <a href="https://github.com/Infisical/go-sdk/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="Infisical SDK's are released under the MIT license." />
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="Infisical SDKs are released under the MIT license." />
   </a>
   <a href="https://infisical.com/slack">
     <img src="https://img.shields.io/badge/chat-on%20Slack-blueviolet" alt="Slack community channel" />
