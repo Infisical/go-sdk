@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/infisical/go-sdk/packages/models"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 func AppendAPIEndpoint(siteUrl string) string {
@@ -28,8 +28,8 @@ func AppendAPIEndpoint(siteUrl string) string {
 	return siteUrl + "/api"
 }
 
-func PrintWarning(message string) {
-	log.Warn().Msgf("[Infisical] Warning: %v", message)
+func PrintWarning(logger zerolog.Logger, message string) {
+	logger.Warn().Msgf("[Infisical] Warning: %v", message)
 }
 
 func EnsureUniqueSecretsByKey(secrets *[]models.Secret, skipUniqueKey bool) {
