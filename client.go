@@ -6,14 +6,19 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+
 	"math"
 	"math/rand"
 	"net"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/hashicorp/golang-lru/v2/expirable"
@@ -42,6 +47,8 @@ type InfisicalClient struct {
 	dynamicSecrets DynamicSecretsInterface
 	kms            KmsInterface
 	ssh            SshInterface
+
+	logger zerolog.Logger
 }
 
 type InfisicalClientInterface interface {
@@ -54,6 +61,56 @@ type InfisicalClientInterface interface {
 	Ssh() SshInterface
 }
 
+type ExponentialBackoffStrategy struct {
+	// Base delay between retries. Defaults to 1 second
+	BaseDelay time.Duration
+
+	// Maximum number of retries. Defaults to 3
+	MaxRetries int
+
+	// Maximum delay between retries. Defaults to 30 seconds
+	MaxDelay time.Duration
+}
+
+func (s *ExponentialBackoffStrategy) GetDelay(retryCount int) time.Duration {
+
+	if s.BaseDelay == 0 {
+		s.BaseDelay = 1 * time.Second
+	}
+
+	if s.MaxDelay == 0 {
+		s.MaxDelay = 30 * time.Second
+	}
+
+	if s.MaxRetries == 0 {
+		s.MaxRetries = 3
+	}
+
+	delay := s.BaseDelay * time.Duration(math.Pow(2, float64(retryCount)))
+
+	// if delay is greater than the user-configured max delay, set the delay to the max delay
+	if delay > s.MaxDelay {
+		delay = s.MaxDelay
+	}
+
+	return s.Jitter(delay)
+}
+
+func (s *ExponentialBackoffStrategy) Jitter(delay time.Duration) time.Duration {
+	// 20% jitter, negative and positive
+
+	jitterFactor := 0.2
+
+	// generates random value in [-0.2, +0.2] range
+	randomFactor := (rand.Float64()*2 - 1) * jitterFactor
+	jitter := time.Duration(randomFactor * float64(delay))
+	return delay + jitter
+}
+
+type RetryRequestsConfig struct {
+	ExponentialBackoff *ExponentialBackoffStrategy
+}
+
 type Config struct {
 	SiteUrl              string `default:"https://app.infisical.com"`
 	CaCertificate        string
@@ -62,6 +119,52 @@ type Config struct {
 	SilentMode           bool   `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
 	CacheExpiryInSeconds int    // Defines how long certain API responses should be cached in memory, in seconds. When set to a positive value, responses from specific fetch API requests (like secret fetching) will be cached for this duration. Set to 0 to disable caching. Defaults to 0.
 	CustomHeaders        map[string]string
+	RetryRequestsConfig  *RetryRequestsConfig
+}
+
+func setupLogger() zerolog.Logger {
+	// very annoying but zerolog doesn't allow us to change one color without changing all of them
+	// these are the default colors for each level, except for warn
+	levelColors := map[string]string{
+		"trace": "\033[35m", // magenta
+		"debug": "\033[33m", // yellow
+		"info":  "\033[32m", // green
+		"warn":  "\033[33m", // yellow (this one is custom, the default is red \033[31m)
+		"error": "\033[31m", // red
+		"fatal": "\033[31m", // red
+		"panic": "\033[31m", // red
+	}
+
+	// map full level names to abbreviated forms (default zerolog behavior)
+	// see consoleDefaultFormatLevel, in zerolog for example
+	levelAbbrev := map[string]string{
+		"trace": "TRC",
+		"debug": "DBG",
+		"info":  "INF",
+		"warn":  "WRN",
+		"error": "ERR",
+		"fatal": "FTL",
+		"panic": "PNC",
+	}
+
+	logger := log.Output(zerolog.ConsoleWriter{
+		Out:        os.Stderr,
+		TimeFormat: time.RFC3339,
+		FormatLevel: func(i interface{}) string {
+			level := fmt.Sprintf("%s", i)
+			color := levelColors[level]
+			if color == "" {
+				color = "\033[0m" // no color for unknown levels
+			}
+			abbrev := levelAbbrev[level]
+			if abbrev == "" {
+				abbrev = strings.ToUpper(level) // fallback to uppercase if unknown
+			}
+			return color + abbrev + "\033[0m"
+		},
+	})
+
+	return logger
 }
 
 func setDefaults(cfg *Config) {
@@ -133,7 +236,11 @@ func (c *InfisicalClient) setPlainAccessToken(accessToken string) {
 }
 
 func NewInfisicalClient(context context.Context, config Config) InfisicalClientInterface {
-	client := &InfisicalClient{}
+	logger := setupLogger()
+
+	client := &InfisicalClient{
+		logger: logger,
+	}
 	setDefaults(&config)
 	client.UpdateConfiguration(config) // set httpClient and config
 
@@ -169,16 +276,32 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 			SetHeader("User-Agent", config.UserAgent).
 			SetBaseURL(config.SiteUrl)
 
-		c.httpClient.SetRetryCount(3).
+		maxRetries := 3
+		maxWaitTime := 30 * time.Second
+
+		if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
+			maxRetries = config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
+			maxWaitTime = 10 * time.Minute
+		}
+
+		c.httpClient.SetRetryCount(maxRetries).
 			SetRetryWaitTime(1 * time.Second).
-			SetRetryMaxWaitTime(30 * time.Second).
-			SetRetryAfter(func(c *resty.Client, r *resty.Response) (time.Duration, error) {
+			SetRetryMaxWaitTime(maxWaitTime).
+			SetRetryAfter(func(rc *resty.Client, r *resty.Response) (time.Duration, error) {
+
+				if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
+					delay := config.RetryRequestsConfig.ExponentialBackoff.GetDelay(r.Request.Attempt)
+					if !config.SilentMode {
+						util.PrintWarning(c.logger, fmt.Sprintf("Request failed, [url=%s] [status=%d] [method=%s]\nRetrying in %s (attempt %d)", r.Request.URL, r.StatusCode(), r.Request.Method, delay.String(), r.Request.Attempt))
+					}
+					return delay, nil
+				}
 
 				attempt := r.Request.Attempt + 1
 				if attempt <= 0 {
 					attempt = 1
 				}
-				waitTime := math.Min(float64(c.RetryWaitTime)*math.Pow(2, float64(attempt-1)), float64(c.RetryMaxWaitTime))
+				waitTime := math.Min(float64(rc.RetryWaitTime)*math.Pow(2, float64(attempt-1)), float64(rc.RetryMaxWaitTime))
 
 				// Add jitter of +/-20%
 				jitterFactor := 0.8 + (rand.Float64() * 0.4)
@@ -189,11 +312,19 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 			}).
 			AddRetryCondition(func(r *resty.Response, err error) bool {
 				// don't retry if there's no error or it's a timeout
-				if err == nil || errors.Is(err, context.DeadlineExceeded) {
+				if errors.Is(err, context.DeadlineExceeded) {
 					return false
 				}
 
-				errMsg := err.Error()
+				if err == nil && r == nil {
+					return false
+				}
+
+				if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
+					if (r != nil && r.IsError()) || err != nil {
+						return r.Request.Attempt <= config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
+					}
+				}
 
 				networkErrors := []string{
 					"connection refused",
@@ -219,9 +350,14 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 					return true
 				}
 
-				for _, netErr := range networkErrors {
-					if strings.Contains(strings.ToLower(errMsg), netErr) {
-						isConditionMet = true
+				if err != nil {
+					for _, netErr := range networkErrors {
+						errMsg := err.Error()
+
+						if strings.Contains(strings.ToLower(errMsg), netErr) {
+							isConditionMet = true
+							break
+						}
 					}
 				}
 
@@ -242,11 +378,11 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 	if config.CaCertificate != "" {
 		caCertPool, err := x509.SystemCertPool()
 		if err != nil && !config.SilentMode {
-			util.PrintWarning(fmt.Sprintf("failed to load system root CA pool: %v", err))
+			util.PrintWarning(c.logger, fmt.Sprintf("failed to load system root CA pool: %v", err))
 		}
 
 		if ok := caCertPool.AppendCertsFromPEM([]byte(config.CaCertificate)); !ok && !config.SilentMode {
-			util.PrintWarning("failed to append CA certificate")
+			util.PrintWarning(c.logger, "failed to append CA certificate")
 		}
 
 		tlsConfig := &tls.Config{
@@ -371,7 +507,7 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 
 					if !config.SilentMode && !warningPrinted && tokenDetails.AccessTokenMaxTTL != 0 && tokenDetails.ExpiresIn != 0 {
 						if tokenDetails.AccessTokenMaxTTL < 60 || tokenDetails.ExpiresIn < 60 {
-							util.PrintWarning("Machine Identity access token TTL or max TTL is less than 60 seconds. This may cause excessive API calls, and you may be subject to rate-limits.")
+							util.PrintWarning(c.logger, "Machine Identity access token TTL or max TTL is less than 60 seconds. This may cause excessive API calls, and you may be subject to rate-limits.")
 						}
 						warningPrinted = true
 					}
@@ -387,7 +523,7 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 						newToken, err := authStrategies[c.authMethod](clientCredential)
 
 						if err != nil && !config.SilentMode {
-							util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
+							util.PrintWarning(c.logger, fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
 						} else {
 							c.setAccessToken(newToken, c.credential, c.authMethod)
 							c.mu.Lock()
@@ -403,7 +539,7 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 							// If renewing would exceed max TTL, directly re-authenticate
 							newToken, err := authStrategies[c.authMethod](clientCredential)
 							if err != nil && !config.SilentMode {
-								util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
+								util.PrintWarning(c.logger, fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
 							} else {
 								c.setAccessToken(newToken, c.credential, c.authMethod)
 								c.mu.Lock()
@@ -416,12 +552,12 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 
 							if err != nil {
 								if !config.SilentMode {
-									util.PrintWarning(fmt.Sprintf("Failed to renew access token: %s\n\nAttempting to re-authenticate.", err.Error()))
+									util.PrintWarning(c.logger, fmt.Sprintf("Failed to renew access token: %s\n\nAttempting to re-authenticate.", err.Error()))
 								}
 
 								newToken, err := authStrategies[c.authMethod](clientCredential)
 								if err != nil && !config.SilentMode {
-									util.PrintWarning(fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
+									util.PrintWarning(c.logger, fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
 								} else {
 									c.setAccessToken(newToken, c.credential, c.authMethod)
 									c.mu.Lock()

@@ -6,13 +6,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/infisical/go-sdk/packages/models"
+	"github.com/rs/zerolog"
 )
 
 func AppendAPIEndpoint(siteUrl string) string {
@@ -28,8 +28,8 @@ func AppendAPIEndpoint(siteUrl string) string {
 	return siteUrl + "/api"
 }
 
-func PrintWarning(message string) {
-	fmt.Fprintf(os.Stderr, "[Infisical] Warning: %v \n", message)
+func PrintWarning(logger zerolog.Logger, message string) {
+	logger.Warn().Msgf("[Infisical] Warning: %v", message)
 }
 
 func EnsureUniqueSecretsByKey(secrets *[]models.Secret, skipUniqueKey bool) {
