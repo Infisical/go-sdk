@@ -321,7 +321,9 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 				}
 
 				if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
-					return r.Request.Attempt <= config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
+					if (r != nil && r.IsError()) || err != nil {
+						return r.Request.Attempt <= config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
+					}
 				}
 
 				networkErrors := []string{
