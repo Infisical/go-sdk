@@ -6,14 +6,19 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+
 	"math"
 	"math/rand"
 	"net"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/hashicorp/golang-lru/v2/expirable"
@@ -54,6 +59,30 @@ type InfisicalClientInterface interface {
 	Ssh() SshInterface
 }
 
+type ExponentialBackoffStrategy struct {
+	BaseDelay    time.Duration
+	JitterFactor float64
+	MaxRetries   int
+}
+
+func (s *ExponentialBackoffStrategy) GetDelay(retryCount int) time.Duration {
+
+	if s.BaseDelay == 0 {
+		s.BaseDelay = 1 * time.Second
+	}
+
+	delay := s.BaseDelay * time.Duration(math.Pow(2, float64(retryCount)))
+
+	// add jitter
+	delay = delay + time.Duration(rand.Float64()*float64(s.JitterFactor*float64(delay)))
+
+	return delay
+}
+
+type RetryRequestsConfig struct {
+	ExponentialBackoff *ExponentialBackoffStrategy
+}
+
 type Config struct {
 	SiteUrl              string `default:"https://app.infisical.com"`
 	CaCertificate        string
@@ -62,6 +91,50 @@ type Config struct {
 	SilentMode           bool   `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
 	CacheExpiryInSeconds int    // Defines how long certain API responses should be cached in memory, in seconds. When set to a positive value, responses from specific fetch API requests (like secret fetching) will be cached for this duration. Set to 0 to disable caching. Defaults to 0.
 	CustomHeaders        map[string]string
+	RetryRequestsConfig  *RetryRequestsConfig
+}
+
+func setupLogger() {
+	// very annoying but zerolog doesn't allow us to change one color without changing all of them
+	// these are the default colors for each level, except for warn
+	levelColors := map[string]string{
+		"trace": "\033[35m", // magenta
+		"debug": "\033[33m", // yellow
+		"info":  "\033[32m", // green
+		"warn":  "\033[33m", // yellow (this one is custom, the default is red \033[31m)
+		"error": "\033[31m", // red
+		"fatal": "\033[31m", // red
+		"panic": "\033[31m", // red
+	}
+
+	// map full level names to abbreviated forms (default zerolog behavior)
+	// see consoleDefaultFormatLevel, in zerolog for example
+	levelAbbrev := map[string]string{
+		"trace": "TRC",
+		"debug": "DBG",
+		"info":  "INF",
+		"warn":  "WRN",
+		"error": "ERR",
+		"fatal": "FTL",
+		"panic": "PNC",
+	}
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{
+		Out:        os.Stderr,
+		TimeFormat: time.RFC3339,
+		FormatLevel: func(i interface{}) string {
+			level := fmt.Sprintf("%s", i)
+			color := levelColors[level]
+			if color == "" {
+				color = "\033[0m" // no color for unknown levels
+			}
+			abbrev := levelAbbrev[level]
+			if abbrev == "" {
+				abbrev = strings.ToUpper(level) // fallback to uppercase if unknown
+			}
+			return color + abbrev + "\033[0m"
+		},
+	})
 }
 
 func setDefaults(cfg *Config) {
@@ -133,6 +206,8 @@ func (c *InfisicalClient) setPlainAccessToken(accessToken string) {
 }
 
 func NewInfisicalClient(context context.Context, config Config) InfisicalClientInterface {
+	setupLogger()
+
 	client := &InfisicalClient{}
 	setDefaults(&config)
 	client.UpdateConfiguration(config) // set httpClient and config
@@ -169,10 +244,26 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 			SetHeader("User-Agent", config.UserAgent).
 			SetBaseURL(config.SiteUrl)
 
-		c.httpClient.SetRetryCount(3).
+		maxRetries := 3
+		maxWaitTime := 30 * time.Second
+
+		if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
+			maxRetries = config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
+			maxWaitTime = 10 * time.Minute
+		}
+
+		c.httpClient.SetRetryCount(maxRetries).
 			SetRetryWaitTime(1 * time.Second).
-			SetRetryMaxWaitTime(30 * time.Second).
+			SetRetryMaxWaitTime(maxWaitTime).
 			SetRetryAfter(func(c *resty.Client, r *resty.Response) (time.Duration, error) {
+
+				if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
+					delay := config.RetryRequestsConfig.ExponentialBackoff.GetDelay(r.Request.Attempt)
+					if !config.SilentMode {
+						util.PrintWarning(fmt.Sprintf("Request failed, [url=%s] [status=%d] [method=%s]\nRetrying in %s (attempt %d)", r.Request.URL, r.StatusCode(), r.Request.Method, delay.String(), r.Request.Attempt))
+					}
+					return delay, nil
+				}
 
 				attempt := r.Request.Attempt + 1
 				if attempt <= 0 {
@@ -189,11 +280,17 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 			}).
 			AddRetryCondition(func(r *resty.Response, err error) bool {
 				// don't retry if there's no error or it's a timeout
-				if err == nil || errors.Is(err, context.DeadlineExceeded) {
+				if errors.Is(err, context.DeadlineExceeded) {
 					return false
 				}
 
-				errMsg := err.Error()
+				if err == nil && r == nil {
+					return false
+				}
+
+				if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
+					return r.Request.Attempt <= config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
+				}
 
 				networkErrors := []string{
 					"connection refused",
@@ -219,9 +316,14 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 					return true
 				}
 
-				for _, netErr := range networkErrors {
-					if strings.Contains(strings.ToLower(errMsg), netErr) {
-						isConditionMet = true
+				if err != nil {
+					for _, netErr := range networkErrors {
+						errMsg := err.Error()
+
+						if strings.Contains(strings.ToLower(errMsg), netErr) {
+							isConditionMet = true
+							break
+						}
 					}
 				}
 
