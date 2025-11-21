@@ -68,7 +68,7 @@ func GetGCPMetadataToken(httpClient *resty.Client, identityID string) (string, e
 
 	res, err := httpClient.R().
 		SetHeader("Metadata-Flavor", "Google").
-		Get(fmt.Sprintf("http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=%s&format=full", identityID))
+		Get(fmt.Sprintf("http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/identity?audience=%s&format=full", identityID))
 
 	if err != nil {
 		return "", err
