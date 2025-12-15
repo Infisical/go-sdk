@@ -529,6 +529,10 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 							c.mu.Lock()
 							c.firstFetchedTime = time.Now()
 							c.mu.Unlock()
+
+							c.mu.RLock()
+							tokenDetails = c.tokenDetails
+							c.mu.RUnlock()
 						}
 
 					} else if timeSinceLastFetchSeconds >= float64(tokenDetails.ExpiresIn-RENEWAL_INTERVAL_BUFFER) {
@@ -545,6 +549,10 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 								c.mu.Lock()
 								c.firstFetchedTime = time.Now()
 								c.mu.Unlock()
+
+								c.mu.RLock()
+								tokenDetails = c.tokenDetails
+								c.mu.RUnlock()
 							}
 							// Case 2: The time until the max TTL is greater than the time until the next access token expiry
 						} else {
@@ -563,9 +571,17 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 									c.mu.Lock()
 									c.firstFetchedTime = time.Now()
 									c.mu.Unlock()
+
+									c.mu.RLock()
+									tokenDetails = c.tokenDetails
+									c.mu.RUnlock()
 								}
 							} else {
 								c.setAccessToken(renewedCredential, clientCredential, authMethod)
+
+								c.mu.RLock()
+								tokenDetails = c.tokenDetails
+								c.mu.RUnlock()
 							}
 						}
 					}
@@ -573,7 +589,7 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 					c.mu.RLock()
 					nextAccessTokenExpiresInTime := c.lastFetchedTime.Add(time.Duration(tokenDetails.ExpiresIn*int64(time.Second)) - (5 * time.Second))
 					accessTokenMaxTTLExpiresInTime := c.firstFetchedTime.Add(time.Duration(tokenDetails.AccessTokenMaxTTL*int64(time.Second)) - (5 * time.Second))
-					expiresIn := time.Duration(c.tokenDetails.ExpiresIn * int64(time.Second))
+					expiresIn := time.Duration(tokenDetails.ExpiresIn * int64(time.Second))
 					c.mu.RUnlock()
 
 					if nextAccessTokenExpiresInTime.After(accessTokenMaxTTLExpiresInTime) {
