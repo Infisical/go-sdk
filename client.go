@@ -602,7 +602,8 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 					sleepTime := time.Until(wakeUpTime)
 
 					// Ensure we sleep for at least 500ms to avoid tight loops
-					if sleepTime < time.Second {
+					// time.Until() can return negative if wakeUpTime is in the past
+					if sleepTime < time.Millisecond*500 {
 						sleepTime = time.Millisecond * 500
 					}
 
