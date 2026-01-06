@@ -587,34 +587,27 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 					}
 
 					c.mu.RLock()
+					// Calculate the target wake-up times (5 seconds before actual expiry)
 					nextAccessTokenExpiresInTime := c.lastFetchedTime.Add(time.Duration(tokenDetails.ExpiresIn*int64(time.Second)) - (5 * time.Second))
 					accessTokenMaxTTLExpiresInTime := c.firstFetchedTime.Add(time.Duration(tokenDetails.AccessTokenMaxTTL*int64(time.Second)) - (5 * time.Second))
-					expiresIn := time.Duration(tokenDetails.ExpiresIn * int64(time.Second))
 					c.mu.RUnlock()
 
-					if nextAccessTokenExpiresInTime.After(accessTokenMaxTTLExpiresInTime) {
-						// Calculate the sleep time
-						sleepTime := expiresIn - nextAccessTokenExpiresInTime.Sub(accessTokenMaxTTLExpiresInTime)
+					// Sleep until the earlier of: token expiry or max TTL expiry (both with 5s buffer already applied)
+					// Use the actual remaining time from now, not the full TTL duration
+					wakeUpTime := nextAccessTokenExpiresInTime
+					if accessTokenMaxTTLExpiresInTime.Before(nextAccessTokenExpiresInTime) {
+						wakeUpTime = accessTokenMaxTTLExpiresInTime
+					}
 
-						// Ensure we sleep for at least 1 second
-						if sleepTime < 1*time.Second {
-							sleepTime = time.Second * 1
-						}
+					sleepTime := time.Until(wakeUpTime)
 
-						if err := util.SleepWithContext(context, sleepTime); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
-							return
-						}
+					// Ensure we sleep for at least 500ms to avoid tight loops
+					if sleepTime < time.Second {
+						sleepTime = time.Millisecond * 500
+					}
 
-					} else {
-						sleepTime := expiresIn - (5 * time.Second)
-
-						if sleepTime < time.Second {
-							sleepTime = time.Millisecond * 500
-						}
-
-						if err := util.SleepWithContext(context, sleepTime); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
-							return
-						}
+					if err := util.SleepWithContext(context, sleepTime); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
+						return
 					}
 				} else {
 					if err := util.SleepWithContext(context, 1*time.Second); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
