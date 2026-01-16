@@ -5,6 +5,13 @@ type SecretMetadata struct {
 	Value string `json:"value"`
 }
 
+type SecretTag struct {
+	ID    string `json:"id"`
+	Slug  string `json:"slug"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
 type Secret struct {
 	ID             string           `json:"id"`
 	Workspace      string           `json:"workspace"`
@@ -16,6 +23,7 @@ type Secret struct {
 	SecretComment  string           `json:"secretComment"`
 	SecretPath     string           `json:"secretPath,omitempty"`
 	SecretMetadata []SecretMetadata `json:"secretMetadata"`
+	Tags           []SecretTag      `json:"tags"`
 }
 
 type SecretImport struct {
