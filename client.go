@@ -22,9 +22,14 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/hashicorp/golang-lru/v2/expirable"
-	api "github.com/infisical/go-sdk/packages/api/auth"
 	"github.com/infisical/go-sdk/packages/models"
 	"github.com/infisical/go-sdk/packages/util"
+)
+
+type LogLevel string
+
+const (
+	LogLevelDebug LogLevel = "debug"
 )
 
 type InfisicalClient struct {
@@ -35,6 +40,10 @@ type InfisicalClient struct {
 	firstFetchedTime time.Time
 
 	mu sync.RWMutex
+
+	// refreshMu is used to prevent concurrent token refreshes.
+	// Only one refresh should happen at a time to avoid race conditions.
+	refreshMu sync.Mutex
 
 	cache *expirable.LRU[string, interface{}]
 
@@ -114,15 +123,16 @@ type RetryRequestsConfig struct {
 type Config struct {
 	SiteUrl              string `default:"https://app.infisical.com"`
 	CaCertificate        string
-	UserAgent            string `default:"infisical-go-sdk"` // User-Agent header to be used on requests sent by the SDK. Defaults to `infisical-go-sdk`. Do not modify this unless you have a reason to do so.
-	AutoTokenRefresh     bool   `default:"true"`             // Wether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
-	SilentMode           bool   `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
-	CacheExpiryInSeconds int    // Defines how long certain API responses should be cached in memory, in seconds. When set to a positive value, responses from specific fetch API requests (like secret fetching) will be cached for this duration. Set to 0 to disable caching. Defaults to 0.
+	LogLevel             LogLevel // Specify the log level for the SDK. If set to debug, the SDK will print to stdout with verbose logging. Defaults to no logging.
+	UserAgent            string   `default:"infisical-go-sdk"` // User-Agent header to be used on requests sent by the SDK. Defaults to `infisical-go-sdk`. Do not modify this unless you have a reason to do so.
+	AutoTokenRefresh     bool     `default:"true"`             // Whether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
+	SilentMode           bool     `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
+	CacheExpiryInSeconds int      // Defines how long certain API responses should be cached in memory, in seconds. When set to a positive value, responses from specific fetch API requests (like secret fetching) will be cached for this duration. Set to 0 to disable caching. Defaults to 0.
 	CustomHeaders        map[string]string
 	RetryRequestsConfig  *RetryRequestsConfig
 }
 
-func setupLogger() zerolog.Logger {
+func setupLogger(logLevel LogLevel) zerolog.Logger {
 	// very annoying but zerolog doesn't allow us to change one color without changing all of them
 	// these are the default colors for each level, except for warn
 	levelColors := map[string]string{
@@ -150,6 +160,7 @@ func setupLogger() zerolog.Logger {
 	logger := log.Output(zerolog.ConsoleWriter{
 		Out:        os.Stderr,
 		TimeFormat: time.RFC3339,
+
 		FormatLevel: func(i interface{}) string {
 			level := fmt.Sprintf("%s", i)
 			color := levelColors[level]
@@ -163,6 +174,18 @@ func setupLogger() zerolog.Logger {
 			return color + abbrev + "\033[0m"
 		},
 	})
+
+	if logLevel != "" {
+		level, err := zerolog.ParseLevel(string(logLevel))
+		if err != nil {
+			logger.Warn().Msgf("Invalid log level: %s", logLevel)
+		} else {
+			logger = logger.Level(level)
+			logger.Debug().Msgf("Infisical SDK log level set to %s", logLevel)
+		}
+	} else {
+		logger = logger.Level(zerolog.InfoLevel)
+	}
 
 	return logger
 }
@@ -236,7 +259,7 @@ func (c *InfisicalClient) setPlainAccessToken(accessToken string) {
 }
 
 func NewInfisicalClient(context context.Context, config Config) InfisicalClientInterface {
-	logger := setupLogger()
+	logger := setupLogger(config.LogLevel)
 
 	client := &InfisicalClient{
 		logger: logger,
@@ -365,6 +388,14 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 
 			})
 
+		// OnBeforeRequest hook to validate and refresh token before each request.
+		// This is a safety net to catch cases where the background token lifecycle
+		// goroutine might miss a refresh window due to timing issues (GC pauses,
+		// CPU contention, etc.). Most requests will not trigger a refresh here
+		// because the background goroutine handles proactive token management.
+		if config.AutoTokenRefresh {
+			c.httpClient.OnBeforeRequest(c.beforeRequestAuthInterceptor)
+		}
 	} else {
 		c.httpClient.
 			SetHeader("User-Agent", config.UserAgent).
@@ -419,201 +450,50 @@ func (c *InfisicalClient) Ssh() SshInterface {
 
 func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 	var warningPrinted = false
-	authStrategies := map[util.AuthMethod]func(cred interface{}) (credential MachineIdentityCredential, err error){
-		util.UNIVERSAL_AUTH: func(cred interface{}) (credential MachineIdentityCredential, err error) {
-			if parsedCreds, ok := cred.(models.UniversalAuthCredential); ok {
-				return c.auth.UniversalAuthLogin(parsedCreds.ClientID, parsedCreds.ClientSecret)
-			}
-			return MachineIdentityCredential{}, fmt.Errorf("failed to parse UniversalAuthCredential")
-		},
-		util.KUBERNETES: func(cred interface{}) (credential MachineIdentityCredential, err error) {
-			if parsedCreds, ok := cred.(models.KubernetesCredential); ok {
-				return c.auth.KubernetesRawServiceAccountTokenLogin(parsedCreds.IdentityID, parsedCreds.ServiceAccountToken)
-			}
-			return MachineIdentityCredential{}, fmt.Errorf("failed to parse KubernetesAuthCredential")
-		},
-		util.AZURE: func(cred interface{}) (credential MachineIdentityCredential, err error) {
-			if parsedCreds, ok := cred.(models.AzureCredential); ok {
-				return c.auth.AzureAuthLogin(parsedCreds.IdentityID, parsedCreds.Resource)
-			}
-			return MachineIdentityCredential{}, fmt.Errorf("failed to parse AzureAuthCredential")
-		},
-		util.GCP_ID_TOKEN: func(cred interface{}) (credential MachineIdentityCredential, err error) {
-			if parsedCreds, ok := cred.(models.GCPIDTokenCredential); ok {
-				return c.auth.GcpIdTokenAuthLogin(parsedCreds.IdentityID)
-			}
-
-			return MachineIdentityCredential{}, fmt.Errorf("failed to parse GCPIDTokenCredential")
-		},
-		util.GCP_IAM: func(cred interface{}) (credential MachineIdentityCredential, err error) {
-			if parsedCreds, ok := cred.(models.GCPIAMCredential); ok {
-				return c.auth.GcpIamAuthLogin(parsedCreds.IdentityID, parsedCreds.ServiceAccountKeyFilePath)
-			}
-			return MachineIdentityCredential{}, fmt.Errorf("failed to parse GCPIAMCredential")
-		},
-		util.AWS_IAM: func(cred interface{}) (credential MachineIdentityCredential, err error) {
-			if parsedCreds, ok := cred.(models.AWSIAMCredential); ok {
-				return c.auth.AwsIamAuthLogin(parsedCreds.IdentityID)
-			}
-
-			return MachineIdentityCredential{}, fmt.Errorf("failed to parse AWSIAMCredential")
-		},
-		util.JWT_AUTH: func(cred interface{}) (credential MachineIdentityCredential, err error) {
-			if parsedCreds, ok := cred.(models.JWTCredential); ok {
-				return c.auth.JwtAuthLogin(parsedCreds.IdentityID, parsedCreds.JWT)
-			}
-			return MachineIdentityCredential{}, fmt.Errorf("failed to parse JWTCredential")
-		},
-		util.LDAP_AUTH: func(cred interface{}) (credential MachineIdentityCredential, err error) {
-			if parsedCreds, ok := cred.(models.LDAPCredential); ok {
-				return c.auth.LdapAuthLogin(parsedCreds.IdentityID, parsedCreds.Username, parsedCreds.Password)
-			}
-			return MachineIdentityCredential{}, fmt.Errorf("failed to parse LDAPCredential")
-		},
-		util.OCI_AUTH: func(cred interface{}) (credential MachineIdentityCredential, err error) {
-			if parsedCreds, ok := cred.(models.OCICredential); ok {
-				return c.auth.OciAuthLogin(OciAuthLoginOptions{
-					IdentityID:  parsedCreds.IdentityID,
-					PrivateKey:  parsedCreds.PrivateKey,
-					Fingerprint: parsedCreds.Fingerprint,
-					UserID:      parsedCreds.UserID,
-					TenancyID:   parsedCreds.TenancyID,
-					Region:      parsedCreds.Region,
-					Passphrase:  parsedCreds.Passphrase,
-				})
-			}
-			return MachineIdentityCredential{}, fmt.Errorf("failed to parse OCICredential")
-		},
-	}
-
-	const RE_AUTHENTICATION_INTERVAL_BUFFER = 2
-	const RENEWAL_INTERVAL_BUFFER = 5
 
 	for {
 		select {
 		case <-context.Done():
 			return // The context has been cancelled, clean up and return from the loop to stop the goroutine
 		default:
-			{
+			c.mu.RLock()
+			config := c.config
+			authMethod := c.authMethod
+			tokenDetails := c.tokenDetails
+			c.mu.RUnlock()
 
-				c.mu.RLock()
-				config := c.config
-				authMethod := c.authMethod
-				tokenDetails := c.tokenDetails
-				clientCredential := c.credential
-				c.mu.RUnlock()
+			if config.AutoTokenRefresh && authMethod != "" && authMethod != util.ACCESS_TOKEN {
+				// Print warning once for short TTLs
+				if !config.SilentMode && !warningPrinted && tokenDetails.AccessTokenMaxTTL != 0 && tokenDetails.ExpiresIn != 0 {
+					if tokenDetails.AccessTokenMaxTTL < 60 || tokenDetails.ExpiresIn < 60 {
+						util.PrintWarning(c.logger, "Machine Identity access token TTL or max TTL is less than 60 seconds. This may cause excessive API calls, and you may be subject to rate-limits.")
+					}
+					warningPrinted = true
+				}
 
-				if config.AutoTokenRefresh && authMethod != "" && authMethod != util.ACCESS_TOKEN {
-
-					if !config.SilentMode && !warningPrinted && tokenDetails.AccessTokenMaxTTL != 0 && tokenDetails.ExpiresIn != 0 {
-						if tokenDetails.AccessTokenMaxTTL < 60 || tokenDetails.ExpiresIn < 60 {
-							util.PrintWarning(c.logger, "Machine Identity access token TTL or max TTL is less than 60 seconds. This may cause excessive API calls, and you may be subject to rate-limits.")
-						}
-						warningPrinted = true
+				// Check if token needs refresh (using the same buffer as OnBeforeRequest)
+				if c.isTokenExpiringSoon(renewalBufferSeconds) {
+					// Use refreshTokenSynchronously which handles both renewal and re-auth
+					// Pass false for manualTrigger since this is from the background goroutine
+					if err := c.refreshTokenSynchronously(false); err != nil {
+						c.logger.Debug().Msgf("Background token refresh failed: %s", err.Error())
 					}
 
+					// Re-read token details after refresh attempt
 					c.mu.RLock()
-
-					timeNow := time.Now()
-					timeSinceLastFetchSeconds := timeNow.Sub(c.lastFetchedTime).Seconds()
-					timeSinceFirstFetchSeconds := timeNow.Sub(c.firstFetchedTime).Seconds()
+					tokenDetails = c.tokenDetails
 					c.mu.RUnlock()
+				}
 
-					if timeSinceFirstFetchSeconds >= float64(tokenDetails.AccessTokenMaxTTL-RE_AUTHENTICATION_INTERVAL_BUFFER) {
-						newToken, err := authStrategies[c.authMethod](clientCredential)
+				// Calculate sleep time until next check
+				sleepTime := c.calculateSleepTime(tokenDetails, renewalBufferSeconds)
 
-						if err != nil && !config.SilentMode {
-							util.PrintWarning(c.logger, fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
-						} else {
-							c.setAccessToken(newToken, c.credential, c.authMethod)
-							c.mu.Lock()
-							c.firstFetchedTime = time.Now()
-							c.mu.Unlock()
-
-							c.mu.RLock()
-							tokenDetails = c.tokenDetails
-							c.mu.RUnlock()
-						}
-
-					} else if timeSinceLastFetchSeconds >= float64(tokenDetails.ExpiresIn-RENEWAL_INTERVAL_BUFFER) {
-						timeUntilMaxTTL := float64(tokenDetails.AccessTokenMaxTTL) - timeSinceFirstFetchSeconds
-
-						// Case 1: The time until the max TTL is less than the time until the next access token expiry
-						if timeUntilMaxTTL < float64(tokenDetails.ExpiresIn) {
-							// If renewing would exceed max TTL, directly re-authenticate
-							newToken, err := authStrategies[c.authMethod](clientCredential)
-							if err != nil && !config.SilentMode {
-								util.PrintWarning(c.logger, fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
-							} else {
-								c.setAccessToken(newToken, c.credential, c.authMethod)
-								c.mu.Lock()
-								c.firstFetchedTime = time.Now()
-								c.mu.Unlock()
-
-								c.mu.RLock()
-								tokenDetails = c.tokenDetails
-								c.mu.RUnlock()
-							}
-							// Case 2: The time until the max TTL is greater than the time until the next access token expiry
-						} else {
-							renewedCredential, err := api.CallRenewAccessToken(c.httpClient, api.RenewAccessTokenRequest{AccessToken: tokenDetails.AccessToken})
-
-							if err != nil {
-								if !config.SilentMode {
-									util.PrintWarning(c.logger, fmt.Sprintf("Failed to renew access token: %s\n\nAttempting to re-authenticate.", err.Error()))
-								}
-
-								newToken, err := authStrategies[c.authMethod](clientCredential)
-								if err != nil && !config.SilentMode {
-									util.PrintWarning(c.logger, fmt.Sprintf("Failed to re-authenticate: %s\n", err.Error()))
-								} else {
-									c.setAccessToken(newToken, c.credential, c.authMethod)
-									c.mu.Lock()
-									c.firstFetchedTime = time.Now()
-									c.mu.Unlock()
-
-									c.mu.RLock()
-									tokenDetails = c.tokenDetails
-									c.mu.RUnlock()
-								}
-							} else {
-								c.setAccessToken(renewedCredential, clientCredential, authMethod)
-
-								c.mu.RLock()
-								tokenDetails = c.tokenDetails
-								c.mu.RUnlock()
-							}
-						}
-					}
-
-					c.mu.RLock()
-					// Calculate the target wake-up times (5 seconds before actual expiry)
-					nextAccessTokenExpiresInTime := c.lastFetchedTime.Add(time.Duration(tokenDetails.ExpiresIn*int64(time.Second)) - (5 * time.Second))
-					accessTokenMaxTTLExpiresInTime := c.firstFetchedTime.Add(time.Duration(tokenDetails.AccessTokenMaxTTL*int64(time.Second)) - (5 * time.Second))
-					c.mu.RUnlock()
-
-					// Sleep until the earlier of: token expiry or max TTL expiry (both with 5s buffer already applied)
-					// Use the actual remaining time from now, not the full TTL duration
-					wakeUpTime := nextAccessTokenExpiresInTime
-					if accessTokenMaxTTLExpiresInTime.Before(nextAccessTokenExpiresInTime) {
-						wakeUpTime = accessTokenMaxTTLExpiresInTime
-					}
-
-					sleepTime := time.Until(wakeUpTime)
-
-					// Ensure we sleep for at least 500ms to avoid tight loops
-					// time.Until() can return negative if wakeUpTime is in the past
-					if sleepTime < time.Millisecond*500 {
-						sleepTime = time.Millisecond * 500
-					}
-
-					if err := util.SleepWithContext(context, sleepTime); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
-						return
-					}
-				} else {
-					if err := util.SleepWithContext(context, 1*time.Second); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
-						return
-					}
+				if err := util.SleepWithContext(context, sleepTime); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
+					return
+				}
+			} else {
+				if err := util.SleepWithContext(context, 1*time.Second); err != nil && (err == util.ErrContextCanceled || errors.Is(err, util.ErrContextDeadlineExceeded)) {
+					return
 				}
 			}
 		}
