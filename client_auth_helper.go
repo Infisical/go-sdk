@@ -230,7 +230,9 @@ func (c *InfisicalClient) getAuthStrategies() map[util.AuthMethod]func(cred inte
 
 func (c *InfisicalClient) beforeRequestAuthInterceptor(client *resty.Client, req *resty.Request) error {
 	// skip auth endpoints to prevent infinite loops.
-	if (strings.Contains(req.URL, "/api/v1/auth/")) && req.Method == http.MethodPost {
+	// note(daniel): req.URL contains just the path ("/v1/auth/..."), not the full URL with base.
+	// the base URL has /api appended, but that's not part of req.URL at this point.
+	if strings.Contains(req.URL, "/v1/auth/") && req.Method == http.MethodPost {
 		return nil
 	}
 
