@@ -33,7 +33,6 @@ const (
 )
 
 type InfisicalClient struct {
-	LogLevel         LogLevel
 	authMethod       util.AuthMethod
 	credential       interface{}
 	tokenDetails     MachineIdentityCredential
@@ -126,7 +125,7 @@ type Config struct {
 	CaCertificate        string
 	LogLevel             LogLevel // Specify the log level for the SDK. If set to debug, the SDK will print to stdout with verbose logging. Defaults to no logging.
 	UserAgent            string   `default:"infisical-go-sdk"` // User-Agent header to be used on requests sent by the SDK. Defaults to `infisical-go-sdk`. Do not modify this unless you have a reason to do so.
-	AutoTokenRefresh     bool     `default:"true"`             // Wether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
+	AutoTokenRefresh     bool     `default:"true"`             // Whether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
 	SilentMode           bool     `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
 	CacheExpiryInSeconds int      // Defines how long certain API responses should be cached in memory, in seconds. When set to a positive value, responses from specific fetch API requests (like secret fetching) will be cached for this duration. Set to 0 to disable caching. Defaults to 0.
 	CustomHeaders        map[string]string
