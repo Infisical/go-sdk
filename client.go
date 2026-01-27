@@ -184,6 +184,8 @@ func setupLogger(logLevel LogLevel) zerolog.Logger {
 			logger = logger.Level(level)
 			logger.Debug().Msgf("Infisical SDK log level set to %s", logLevel)
 		}
+	} else {
+		logger = logger.Level(zerolog.InfoLevel)
 	}
 
 	return logger
