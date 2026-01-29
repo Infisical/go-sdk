@@ -4,7 +4,7 @@ package api
 type JwtAuthLoginRequest struct {
 	IdentityID       string `json:"identityId"`
 	JWT              string `json:"jwt"`
-	OrganizationSlug string `json:"organizationSlug"`
+	OrganizationSlug string `json:"organizationSlug,omitempty"`
 }
 
 // Revoke access token:
@@ -20,20 +20,20 @@ type RevokeAccessTokenResponse struct {
 type UniversalAuthLoginRequest struct {
 	ClientID         string `json:"clientId"`
 	ClientSecret     string `json:"clientSecret"`
-	OrganizationSlug string `json:"organizationSlug"`
+	OrganizationSlug string `json:"organizationSlug,omitempty"`
 }
 
 // Kubernetes auth:
 type KubernetesAuthLoginRequest struct {
 	IdentityID       string `json:"identityId"`
 	JWT              string `json:"jwt"`
-	OrganizationSlug string `json:"organizationSlug"`
+	OrganizationSlug string `json:"organizationSlug,omitempty"`
 }
 
 type AzureAuthLoginRequest struct {
 	IdentityID       string `json:"identityId"`
 	JWT              string `json:"jwt"`
-	OrganizationSlug string `json:"organizationSlug"`
+	OrganizationSlug string `json:"organizationSlug,omitempty"`
 }
 
 type AwsIamAuthLoginRequest struct {
@@ -41,19 +41,19 @@ type AwsIamAuthLoginRequest struct {
 	IamRequestBody    string `json:"iamRequestBody"`
 	IamRequestHeaders string `json:"iamRequestHeaders"`
 	IdentityId        string `json:"identityId"`
-	OrganizationSlug  string `json:"organizationSlug"`
+	OrganizationSlug  string `json:"organizationSlug,omitempty"`
 }
 
 type GCPAuthLoginRequest struct {
 	IdentityID       string `json:"identityId"`
 	JWT              string `json:"jwt"`
-	OrganizationSlug string `json:"organizationSlug"`
+	OrganizationSlug string `json:"organizationSlug,omitempty"`
 }
 
 type OidcAuthLoginRequest struct {
 	IdentityID       string `json:"identityId"`
 	JWT              string `json:"jwt"`
-	OrganizationSlug string `json:"organizationSlug"`
+	OrganizationSlug string `json:"organizationSlug,omitempty"`
 }
 
 type MachineIdentityAuthLoginResponse struct {
@@ -71,12 +71,12 @@ type OciAuthLoginRequest struct {
 	IdentityID       string            `json:"identityId"`
 	UserOcid         string            `json:"userOcid"`
 	Headers          map[string]string `json:"headers"`
-	OrganizationSlug string            `json:"organizationSlug"`
+	OrganizationSlug string            `json:"organizationSlug,omitempty"`
 }
 
 type LdapAuthLoginRequest struct {
 	IdentityID       string `json:"identityId"`
 	Username         string `json:"username"`
 	Password         string `json:"password"`
-	OrganizationSlug string `json:"organizationSlug"`
+	OrganizationSlug string `json:"organizationSlug,omitempty"`
 }
