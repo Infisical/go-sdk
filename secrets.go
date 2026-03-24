@@ -23,8 +23,15 @@ type BatchSecretsInterface interface {
 	Create(options BatchCreateSecretsOptions) ([]models.Secret, error)
 }
 
+type ListSecretsResult struct {
+	Secrets []models.Secret
+	ETag    string
+}
+
 type SecretsInterface interface {
-	List(options *ListSecretsOptions) ([]models.Secret, error)
+	// Deprecated: Use ListSecrets instead for ETag-based caching support.
+	List(options ListSecretsOptions) ([]models.Secret, error)
+	ListSecrets(options ListSecretsOptions) (ListSecretsResult, error)
 	Retrieve(options RetrieveSecretOptions) (models.Secret, error)
 	Update(options UpdateSecretOptions) (models.Secret, error)
 	Create(options CreateSecretOptions) (models.Secret, error)
@@ -40,14 +47,21 @@ type BatchSecrets struct {
 	client *InfisicalClient
 }
 
-func (s *Secrets) List(options *ListSecretsOptions) ([]models.Secret, error) {
-	res, err := api.CallListSecretsV3(s.client.cache, s.client.httpClient, *options)
-
+// Deprecated: Use ListSecrets instead for ETag-based caching support.
+func (s *Secrets) List(options ListSecretsOptions) ([]models.Secret, error) {
+	result, err := s.ListSecrets(options)
 	if err != nil {
 		return nil, err
 	}
+	return result.Secrets, nil
+}
 
-	options.ETag = res.ETag
+func (s *Secrets) ListSecrets(options ListSecretsOptions) (ListSecretsResult, error) {
+	res, err := api.CallListSecretsV3(s.client.cache, s.client.httpClient, options)
+
+	if err != nil {
+		return ListSecretsResult{}, err
+	}
 
 	if options.Recursive {
 		util.EnsureUniqueSecretsByKey(&res.Secrets, options.SkipUniqueValidation)
@@ -77,7 +91,10 @@ func (s *Secrets) List(options *ListSecretsOptions) ([]models.Secret, error) {
 
 	}
 
-	return util.SortSecretsByKeys(secrets), nil
+	return ListSecretsResult{
+		Secrets: util.SortSecretsByKeys(secrets),
+		ETag:    res.ETag,
+	}, nil
 }
 
 func (s *Secrets) Retrieve(options RetrieveSecretOptions) (models.Secret, error) {

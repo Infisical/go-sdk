@@ -12,8 +12,10 @@ import (
 	"github.com/infisical/go-sdk/packages/models"
 )
 
-func newTestClient(handler http.Handler) *resty.Client {
+func newTestClient(t *testing.T, handler http.Handler) *resty.Client {
+	t.Helper()
 	server := httptest.NewServer(handler)
+	t.Cleanup(server.Close)
 	return resty.New().SetBaseURL(server.URL)
 }
 
@@ -86,7 +88,7 @@ func TestCallListSecretsV3(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := newTestClient(jsonHandler(tt.statusCode, tt.etag, tt.responseBody))
+			client := newTestClient(t, jsonHandler(tt.statusCode, tt.etag, tt.responseBody))
 
 			res, err := CallListSecretsV3(nil, client, tt.request)
 

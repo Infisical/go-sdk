@@ -15,19 +15,13 @@ type ListSecretsV3RawRequest struct {
 	Recursive              bool   `json:"recursive"`
 	SecretPath             string `json:"secretPath,omitempty"`
 	SkipUniqueValidation   bool   `json:"skip_unique_validation,omitempty"`
-
-	// IfNoneMatch is sent as the If-None-Match header. Set this to the ETag from a previous response
-	// to receive a 304 Not Modified if the secrets have not changed.
-	IfNoneMatch string `json:"-"`
-
-	// ETag is populated from the response ETag header after a successful call.
-	ETag string `json:"-"`
+	IfNoneMatch            string `json:"-"`
 }
 
 type ListSecretsV3RawResponse struct {
 	Secrets []models.Secret       `json:"secrets"`
 	Imports []models.SecretImport `json:"imports"`
-	ETag    string                `json:"-"` // populated from response ETag header
+	ETag    string                `json:"etag"`
 }
 
 // Retrieve secret
