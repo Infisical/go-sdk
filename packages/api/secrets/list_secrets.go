@@ -35,7 +35,7 @@ func CallListSecretsV3(cache *expirable.LRU[string, interface{}], httpClient *re
 		request.SecretPath = "/"
 	}
 
-	res, err := httpClient.R().
+	req := httpClient.R().
 		SetResult(&secretsResponse).
 		SetQueryParams(map[string]string{
 			"workspaceId":            request.ProjectID,
@@ -45,15 +45,27 @@ func CallListSecretsV3(cache *expirable.LRU[string, interface{}], httpClient *re
 			"expandSecretReferences": fmt.Sprintf("%t", request.ExpandSecretReferences),
 			"include_imports":        fmt.Sprintf("%t", request.IncludeImports),
 			"recursive":              fmt.Sprintf("%t", request.Recursive),
-		}).Get("/v3/secrets/raw")
+		})
+
+	if request.IfNoneMatch != "" {
+		req.SetHeader("If-None-Match", request.IfNoneMatch)
+	}
+
+	res, err := req.Get("/v3/secrets/raw")
 
 	if err != nil {
 		return ListSecretsV3RawResponse{}, errors.NewRequestError(callListSecretsV3RawOperation, err)
 	}
 
+	if res.StatusCode() == 304 {
+		return ListSecretsV3RawResponse{}, errors.NewNotModifiedError(callListSecretsV3RawOperation)
+	}
+
 	if res.IsError() {
 		return ListSecretsV3RawResponse{}, errors.NewAPIErrorWithResponse(callListSecretsV3RawOperation, res)
 	}
+
+	secretsResponse.ETag = res.Header().Get("ETag")
 
 	if cache != nil {
 		cache.Add(cacheKey, secretsResponse)

@@ -15,11 +15,13 @@ type ListSecretsV3RawRequest struct {
 	Recursive              bool   `json:"recursive"`
 	SecretPath             string `json:"secretPath,omitempty"`
 	SkipUniqueValidation   bool   `json:"skip_unique_validation,omitempty"`
+	IfNoneMatch            string `json:"-"`
 }
 
 type ListSecretsV3RawResponse struct {
 	Secrets []models.Secret       `json:"secrets"`
 	Imports []models.SecretImport `json:"imports"`
+	ETag    string                `json:"etag"`
 }
 
 // Retrieve secret
