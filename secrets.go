@@ -24,7 +24,7 @@ type BatchSecretsInterface interface {
 }
 
 type SecretsInterface interface {
-	List(options ListSecretsOptions) ([]models.Secret, error)
+	List(options *ListSecretsOptions) ([]models.Secret, error)
 	Retrieve(options RetrieveSecretOptions) (models.Secret, error)
 	Update(options UpdateSecretOptions) (models.Secret, error)
 	Create(options CreateSecretOptions) (models.Secret, error)
@@ -40,12 +40,14 @@ type BatchSecrets struct {
 	client *InfisicalClient
 }
 
-func (s *Secrets) List(options ListSecretsOptions) ([]models.Secret, error) {
-	res, err := api.CallListSecretsV3(s.client.cache, s.client.httpClient, options)
+func (s *Secrets) List(options *ListSecretsOptions) ([]models.Secret, error) {
+	res, err := api.CallListSecretsV3(s.client.cache, s.client.httpClient, *options)
 
 	if err != nil {
 		return nil, err
 	}
+
+	options.ETag = res.ETag
 
 	if options.Recursive {
 		util.EnsureUniqueSecretsByKey(&res.Secrets, options.SkipUniqueValidation)

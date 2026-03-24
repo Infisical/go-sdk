@@ -57,3 +57,19 @@ func NewAPIErrorWithResponse(operation string, res *resty.Response) error {
 		ReqId:        reqId,
 	}
 }
+
+// NotModifiedError is returned when the server responds with 304 Not Modified,
+// indicating the resource has not changed since the last request (based on ETag).
+type NotModifiedError struct {
+	Operation string
+}
+
+func (e *NotModifiedError) Error() string {
+	return fmt.Sprintf("%s: secrets not modified (HTTP 304)", e.Operation)
+}
+
+func NewNotModifiedError(operation string) error {
+	return &NotModifiedError{
+		Operation: operation,
+	}
+}

@@ -23,3 +23,4 @@ type SecretImport = models.SecretImport
 
 type APIError = errors.APIError
 type RequestError = errors.RequestError
+type NotModifiedError = errors.NotModifiedError
