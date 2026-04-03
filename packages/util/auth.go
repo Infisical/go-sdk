@@ -162,12 +162,12 @@ func GetGCPIamServiceAccountToken(identityID string, serviceAccountKeyPath strin
 		return "", fmt.Errorf("failed to marshal JWT payload: %v", err)
 	}
 
-	iamCredentialsClient, err := credentials.NewIamCredentialsClient(ctx, option.WithCredentialsFile(serviceAccountKeyPath))
+	iamCredentialsClient, err := credentials.NewIamCredentialsClient(ctx, option.WithCredentialsFile(serviceAccountKeyPath)) //nolint:staticcheck // deprecated but no drop-in replacement available yet
 	if err != nil {
 		return "", fmt.Errorf("failed to create IAM credentials client: %v", err)
 	}
 
-	defer iamCredentialsClient.Close()
+	defer iamCredentialsClient.Close() //nolint:errcheck
 
 	signJwtRequest := &credentialspb.SignJwtRequest{
 		Name:    fmt.Sprintf("projects/-/serviceAccounts/%s", clientEmail),

@@ -329,7 +329,7 @@ func (a *Auth) AwsIamAuthLogin(identityId string) (credential MachineIdentityCre
 		return MachineIdentityCredential{}, fmt.Errorf("error signing request: %v", err)
 	}
 
-	var realHeaders map[string]string = make(map[string]string)
+	realHeaders := make(map[string]string)
 	for name, values := range req.Header {
 		if strings.ToLower(name) == "content-length" {
 			continue
