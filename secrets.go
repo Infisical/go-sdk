@@ -85,7 +85,7 @@ func (s *Secrets) ListSecrets(options ListSecretsOptions) (ListSecretsResult, er
 		for _, secret := range secrets {
 			// Only set the environment variable if it is not already set
 			if os.Getenv(secret.SecretKey) == "" {
-				os.Setenv(secret.SecretKey, secret.SecretValue)
+				_ = os.Setenv(secret.SecretKey, secret.SecretValue)
 			}
 		}
 

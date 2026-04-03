@@ -77,7 +77,7 @@ func (c *InfisicalClient) refreshTokenSynchronously(manualTrigger bool) error {
 			message = fmt.Sprintf("Re-authentication failed. Error: %v", err)
 		}
 
-		c.logger.Debug().Msgf(message)
+		c.logger.Debug().Msg(message)
 		return err
 	}
 
@@ -85,7 +85,7 @@ func (c *InfisicalClient) refreshTokenSynchronously(manualTrigger bool) error {
 	c.logger.Debug().Msgf("Attempting token renewal")
 	err := c.doTokenRenewal(tokenDetails.AccessToken, credential, authMethod)
 	if err != nil {
-		c.logger.Debug().Msgf(fmt.Sprintf("Token renewal failed. Attempting re-authentication as fallback. Error: %v", err))
+		c.logger.Debug().Msgf("Token renewal failed. Attempting re-authentication as fallback. Error: %v", err)
 		// Renewal failed, try re-authentication as fallback
 		if !config.SilentMode {
 			util.PrintWarning(c.logger, fmt.Sprintf("Token renewal failed during pre-request check: %s. Attempting re-authentication", err.Error()))
@@ -97,7 +97,7 @@ func (c *InfisicalClient) refreshTokenSynchronously(manualTrigger bool) error {
 			message = fmt.Sprintf("Re-authentication failed as fallback. Error: %v", err)
 		}
 
-		c.logger.Debug().Msgf(message)
+		c.logger.Debug().Msg(message)
 		return err
 
 	}
