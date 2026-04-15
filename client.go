@@ -6,11 +6,12 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 
 	"math"
 	"math/rand"
 	"net"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -130,9 +131,10 @@ type Config struct {
 	CacheExpiryInSeconds int      // Defines how long certain API responses should be cached in memory, in seconds. When set to a positive value, responses from specific fetch API requests (like secret fetching) will be cached for this duration. Set to 0 to disable caching. Defaults to 0.
 	CustomHeaders        map[string]string
 	RetryRequestsConfig  *RetryRequestsConfig
+	LogWriter            io.Writer
 }
 
-func setupLogger(logLevel LogLevel) zerolog.Logger {
+func setupLogger(logLevel LogLevel, logWriter io.Writer) zerolog.Logger {
 	// very annoying but zerolog doesn't allow us to change one color without changing all of them
 	// these are the default colors for each level, except for warn
 	levelColors := map[string]string{
@@ -157,8 +159,13 @@ func setupLogger(logLevel LogLevel) zerolog.Logger {
 		"panic": "PNC",
 	}
 
+	// default to stderr
+	if logWriter == nil {
+		logWriter = os.Stderr
+	}
+
 	logger := log.Output(zerolog.ConsoleWriter{
-		Out:        os.Stderr,
+		Out:        logWriter,
 		TimeFormat: time.RFC3339,
 
 		FormatLevel: func(i interface{}) string {
@@ -259,7 +266,7 @@ func (c *InfisicalClient) setPlainAccessToken(accessToken string) {
 }
 
 func NewInfisicalClient(context context.Context, config Config) InfisicalClientInterface {
-	logger := setupLogger(config.LogLevel)
+	logger := setupLogger(config.LogLevel, config.LogWriter)
 
 	client := &InfisicalClient{
 		logger: logger,
