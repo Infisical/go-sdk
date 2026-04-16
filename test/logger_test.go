@@ -36,8 +36,15 @@ func captureStdStreams(t *testing.T, fn func()) (stdout, stderr []byte) {
 	fn()
 
 	// Close writers so ReadAll on the readers terminates.
-	stdoutW.Close()
-	stderrW.Close()
+	err = stdoutW.Close()
+	if err != nil {
+		t.Fatalf("failed to close stdout pipe: %v", err)
+	}
+
+	err = stderrW.Close()
+	if err != nil {
+		t.Fatalf("failed to close stderr pipe: %v", err)
+	}
 
 	stdout, err = io.ReadAll(stdoutR)
 	if err != nil {
