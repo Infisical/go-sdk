@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,7 +36,7 @@ type AuthInterface interface {
 	JwtAuthLogin(identityID string, jwt string) (credential MachineIdentityCredential, err error)
 	KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (credential MachineIdentityCredential, err error)
 	KubernetesRawServiceAccountTokenLogin(identityID string, serviceAccountToken string) (credential MachineIdentityCredential, err error)
-	AzureAuthLogin(identityID string, resource string) (credential MachineIdentityCredential, err error)
+	AzureAuthLogin(identityID string, resource string, opts ...AzureAuthLoginOptions) (credential MachineIdentityCredential, err error)
 	GcpIdTokenAuthLogin(identityID string) (credential MachineIdentityCredential, err error)
 	GcpIamAuthLogin(identityID string, serviceAccountKeyFilePath string) (credential MachineIdentityCredential, err error)
 	AwsIamAuthLogin(identityId string) (credential MachineIdentityCredential, err error)
@@ -189,7 +190,12 @@ func (a *Auth) KubernetesRawServiceAccountTokenLogin(identityID string, serviceA
 	return credential, nil
 }
 
-func (a *Auth) AzureAuthLogin(identityID string, resource string) (credential MachineIdentityCredential, err error) {
+func (a *Auth) AzureAuthLogin(identityID string, resource string, opts ...AzureAuthLoginOptions) (credential MachineIdentityCredential, err error) {
+	var o AzureAuthLoginOptions
+	if len(opts) > 0 {
+		o = opts[0]
+	}
+
 	if identityID == "" {
 		identityID = os.Getenv(util.INFISICAL_AZURE_AUTH_IDENTITY_ID_ENV_NAME)
 	}
@@ -198,7 +204,31 @@ func (a *Auth) AzureAuthLogin(identityID string, resource string) (credential Ma
 		organizationSlug = os.Getenv(util.INFISICAL_AUTH_ORGANIZATION_SLUG_ENV_NAME)
 	}
 
-	jwt, jwtError := util.GetAzureMetadataToken(a.client.httpClient, resource)
+	imdsClientID := firstNonEmpty(o.IMDSClientID, os.Getenv(util.INFISICAL_AZURE_AUTH_CLIENT_ID_ENV_NAME))
+	imdsObjectID := firstNonEmpty(o.IMDSObjectID, os.Getenv(util.INFISICAL_AZURE_AUTH_OBJECT_ID_ENV_NAME))
+
+	wiClientID := firstNonEmpty(o.WIClientID, os.Getenv(util.AZURE_CLIENT_ID_ENV_NAME))
+	wiTenantID := firstNonEmpty(o.WITenantID, os.Getenv(util.AZURE_TENANT_ID_ENV_NAME))
+	wiTokenFile := firstNonEmpty(o.WITokenFilePath, os.Getenv(util.AZURE_FEDERATED_TOKEN_FILE_ENV_NAME))
+	wiAuthorityHost := firstNonEmpty(o.WIAuthorityHost, os.Getenv(util.AZURE_AUTHORITY_HOST_ENV_NAME))
+
+	useWI := resolveAzureAuthUseWI(o, wiClientID, wiTenantID, wiTokenFile)
+
+	var jwt string
+	var jwtError error
+	if useWI {
+		jwt, jwtError = util.GetAzureWorkloadIdentityToken(context.Background(), resource, util.AzureWorkloadIdentityOptions{
+			ClientID:      wiClientID,
+			TenantID:      wiTenantID,
+			TokenFilePath: wiTokenFile,
+			AuthorityHost: wiAuthorityHost,
+		})
+	} else {
+		jwt, jwtError = util.GetAzureMetadataToken(a.client.httpClient, resource, util.AzureIMDSIdentitySelector{
+			ClientID: imdsClientID,
+			ObjectID: imdsObjectID,
+		})
+	}
 
 	if jwtError != nil {
 		return MachineIdentityCredential{}, jwtError
@@ -216,10 +246,52 @@ func (a *Auth) AzureAuthLogin(identityID string, resource string) (credential Ma
 
 	a.client.setAccessToken(
 		credential,
-		models.AzureCredential{IdentityID: identityID, Resource: resource},
+		models.AzureCredential{
+			IdentityID:          identityID,
+			Resource:            resource,
+			UseWorkloadIdentity: o.UseWorkloadIdentity,
+			IMDSClientID:        imdsClientID,
+			IMDSObjectID:        imdsObjectID,
+			WIClientID:          o.WIClientID,
+			WITenantID:          o.WITenantID,
+			WITokenFilePath:     o.WITokenFilePath,
+			WIAuthorityHost:     o.WIAuthorityHost,
+		},
 		util.AZURE,
 	)
 	return credential, nil
+}
+
+// resolveAzureAuthUseWI implements the Azure auth mode precedence ladder.
+//
+// Precedence (first match wins):
+//  1. Explicit option (opts.UseWorkloadIdentity != nil) -> use as-is.
+//  2. Explicit env var INFISICAL_AZURE_AUTH_USE_WORKLOAD_IDENTITY = "true" / "false".
+//  3. Auto-detect: WI when AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_FEDERATED_TOKEN_FILE
+//     are all set and the token file exists on disk; otherwise IMDS.
+func resolveAzureAuthUseWI(o AzureAuthLoginOptions, wiClientID, wiTenantID, wiTokenFile string) bool {
+	if o.UseWorkloadIdentity != nil {
+		return *o.UseWorkloadIdentity
+	}
+	if v, err := strconv.ParseBool(os.Getenv(util.INFISICAL_AZURE_AUTH_USE_WORKLOAD_IDENTITY_ENV_NAME)); err == nil {
+		return v
+	}
+	if wiClientID == "" || wiTenantID == "" || wiTokenFile == "" {
+		return false
+	}
+	if _, statErr := os.Stat(wiTokenFile); statErr != nil {
+		return false
+	}
+	return true
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func (a *Auth) GcpIdTokenAuthLogin(identityID string) (credential MachineIdentityCredential, err error) {

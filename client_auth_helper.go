@@ -177,7 +177,15 @@ func (c *InfisicalClient) getAuthStrategies() map[util.AuthMethod]func(cred inte
 		},
 		util.AZURE: func(cred interface{}) (credential MachineIdentityCredential, err error) {
 			if parsedCreds, ok := cred.(models.AzureCredential); ok {
-				return c.auth.AzureAuthLogin(parsedCreds.IdentityID, parsedCreds.Resource)
+				return c.auth.AzureAuthLogin(parsedCreds.IdentityID, parsedCreds.Resource, AzureAuthLoginOptions{
+					UseWorkloadIdentity: parsedCreds.UseWorkloadIdentity,
+					IMDSClientID:        parsedCreds.IMDSClientID,
+					IMDSObjectID:        parsedCreds.IMDSObjectID,
+					WIClientID:          parsedCreds.WIClientID,
+					WITenantID:          parsedCreds.WITenantID,
+					WITokenFilePath:     parsedCreds.WITokenFilePath,
+					WIAuthorityHost:     parsedCreds.WIAuthorityHost,
+				})
 			}
 			return MachineIdentityCredential{}, fmt.Errorf("failed to parse AzureAuthCredential")
 		},

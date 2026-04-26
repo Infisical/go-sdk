@@ -6,10 +6,14 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	credentials "cloud.google.com/go/iam/credentials/apiv1"
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/go-resty/resty/v2"
@@ -32,14 +36,47 @@ func GetKubernetesServiceAccountToken(serviceAccountTokenPath string) (string, e
 
 }
 
-func buildAzureMetadataServiceURL(resource string) string {
-	if resource != "" {
-		return AZURE_METADATA_SERVICE_URL + url.PathEscape(resource)
-	}
-	return AZURE_METADATA_SERVICE_URL + AZURE_DEFAULT_RESOURCE
+// AzureIMDSIdentitySelector pins which managed identity IMDS should issue the token for
+// when multiple user-assigned managed identities are attached to the host. ClientID is
+// preferred; ObjectID is used only when ClientID is empty. When both are empty, IMDS uses
+// the system-assigned identity (the legacy SDK behaviour).
+type AzureIMDSIdentitySelector struct {
+	ClientID string
+	ObjectID string
 }
 
-func GetAzureMetadataToken(httpClient *resty.Client, customResource string) (string, error) {
+// AzureWorkloadIdentityOptions allows callers to override the standard AZURE_* environment
+// variables consumed by Azure Workload Identity. Empty fields fall back to the env vars.
+type AzureWorkloadIdentityOptions struct {
+	ClientID      string
+	TenantID      string
+	TokenFilePath string
+	AuthorityHost string
+}
+
+func buildAzureMetadataServiceURL(resource string, sel AzureIMDSIdentitySelector) string {
+	metadataURL := AZURE_METADATA_SERVICE_URL
+	if resource != "" {
+		metadataURL += url.PathEscape(resource)
+	} else {
+		metadataURL += AZURE_DEFAULT_RESOURCE
+	}
+
+	switch {
+	case sel.ClientID != "":
+		metadataURL += "&client_id=" + url.QueryEscape(sel.ClientID)
+	case sel.ObjectID != "":
+		metadataURL += "&object_id=" + url.QueryEscape(sel.ObjectID)
+	}
+
+	return metadataURL
+}
+
+// GetAzureMetadataToken acquires an Az Entra ID access token from the Azure Instance Metadata
+// Service (IMDS). When the host has multiple user-assigned managed identities attached,
+// pass a non-empty AzureIMDSIdentitySelector to disambiguate which one IMDS should use,
+// otherwise IMDS will fail with HTTP 400.
+func GetAzureMetadataToken(httpClient *resty.Client, customResource string, sel AzureIMDSIdentitySelector) (string, error) {
 
 	type AzureMetadataResponse struct {
 		AccessToken string `json:"access_token"`
@@ -51,7 +88,7 @@ func GetAzureMetadataToken(httpClient *resty.Client, customResource string) (str
 		SetResult(&metadataResponse).
 		SetHeader("Metadata", "true").
 		SetHeader("Accept", "application/json").
-		Get(buildAzureMetadataServiceURL(customResource))
+		Get(buildAzureMetadataServiceURL(customResource, sel))
 
 	if err != nil {
 		return "", err
@@ -62,6 +99,61 @@ func GetAzureMetadataToken(httpClient *resty.Client, customResource string) (str
 	}
 
 	return metadataResponse.AccessToken, nil
+}
+
+// GetAzureWorkloadIdentityToken acquires an Az Entra ID access token via Azure Workload Identity
+// using the official azidentity client. The resource argument follows the same legacy
+// contract used by GetAzureMetadataToken: it may be a URL-encoded value (e.g. the
+// AZURE_DEFAULT_RESOURCE constant) or a plain URL such as "https://management.azure.com/".
+// The function normalises it and appends the "/.default" suffix required by Az Entra ID v2 scopes.
+func GetAzureWorkloadIdentityToken(ctx context.Context, customResource string, opts AzureWorkloadIdentityOptions) (string, error) {
+
+	credOpts := &azidentity.WorkloadIdentityCredentialOptions{
+		ClientID:      opts.ClientID,
+		TenantID:      opts.TenantID,
+		TokenFilePath: opts.TokenFilePath,
+	}
+
+	authorityHost := opts.AuthorityHost
+	if authorityHost == "" {
+		authorityHost = os.Getenv(AZURE_AUTHORITY_HOST_ENV_NAME)
+	}
+	if authorityHost != "" {
+		credOpts.ClientOptions = policy.ClientOptions{
+			Cloud: cloud.Configuration{ActiveDirectoryAuthorityHost: authorityHost},
+		}
+	}
+
+	cred, err := azidentity.NewWorkloadIdentityCredential(credOpts)
+	if err != nil {
+		return "", fmt.Errorf("GetAzureWorkloadIdentityToken: failed to create credential: %w", err)
+	}
+
+	tk, err := cred.GetToken(ctx, policy.TokenRequestOptions{
+		Scopes: []string{normaliseAzureScope(customResource)},
+	})
+	if err != nil {
+		return "", fmt.Errorf("GetAzureWorkloadIdentityToken: failed to acquire token: %w", err)
+	}
+
+	return tk.Token, nil
+}
+
+// normaliseAzureScope decodes a possibly URL-encoded resource string and returns the Az Entra ID
+// v2 scope form ("<resource>/.default"). Empty input falls back to the default management
+// resource so behaviour matches GetAzureMetadataToken.
+func normaliseAzureScope(resource string) string {
+	if resource == "" {
+		resource = AZURE_DEFAULT_RESOURCE
+	}
+	if decoded, err := url.QueryUnescape(resource); err == nil {
+		resource = decoded
+	}
+	resource = strings.TrimSuffix(resource, "/")
+	if strings.HasSuffix(resource, "/.default") {
+		return resource
+	}
+	return resource + "/.default"
 }
 
 func GetGCPMetadataToken(httpClient *resty.Client, identityID string) (string, error) {

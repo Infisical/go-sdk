@@ -36,6 +36,22 @@ type KubernetesCredential struct {
 type AzureCredential struct {
 	IdentityID string
 	Resource   string
+
+	// UseWorkloadIdentity is a tri-state pointer: nil means "auto-detect from env vars",
+	// while a non-nil value forces the corresponding mode on re-authentication.
+	UseWorkloadIdentity *bool
+
+	// IMDS selectors persisted so background re-auth keeps targeting the same managed
+	// identity that the initial login used.
+	IMDSClientID string
+	IMDSObjectID string
+
+	// Workload Identity overrides persisted alongside the credential. Empty fields
+	// fall back to the AZURE_* environment variables, matching the initial login.
+	WIClientID      string
+	WITenantID      string
+	WITokenFilePath string
+	WIAuthorityHost string
 }
 
 type OIDCCredential struct {
