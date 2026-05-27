@@ -32,17 +32,29 @@ func GetKubernetesServiceAccountToken(serviceAccountTokenPath string) (string, e
 
 }
 
-func buildAzureMetadataServiceURL(resource string) string {
+func buildAzureMetadataServiceURL(resource string, clientID string) string {
+	azureURL := AZURE_METADATA_SERVICE_URL + AZURE_DEFAULT_RESOURCE
 	if resource != "" {
-		return AZURE_METADATA_SERVICE_URL + url.PathEscape(resource)
+		azureURL = AZURE_METADATA_SERVICE_URL + url.QueryEscape(resource)
 	}
-	return AZURE_METADATA_SERVICE_URL + AZURE_DEFAULT_RESOURCE
+	if clientID != "" {
+		azureURL += "&client_id=" + url.QueryEscape(clientID)
+	}
+	return azureURL
 }
 
-func GetAzureMetadataToken(httpClient *resty.Client, customResource string) (string, error) {
+// GetAzureMetadataToken fetches a JWT from the Azure IMDS endpoint.
+// The optional clientID variadic targets a specific User-Assigned Managed Identity;
+// omit it (or pass "") for System-Assigned Managed Identity. Only the first value is used.
+func GetAzureMetadataToken(httpClient *resty.Client, customResource string, clientID ...string) (string, error) {
 
 	type AzureMetadataResponse struct {
 		AccessToken string `json:"access_token"`
+	}
+
+	cid := ""
+	if len(clientID) > 0 {
+		cid = clientID[0]
 	}
 
 	metadataResponse := AzureMetadataResponse{}
@@ -51,7 +63,7 @@ func GetAzureMetadataToken(httpClient *resty.Client, customResource string) (str
 		SetResult(&metadataResponse).
 		SetHeader("Metadata", "true").
 		SetHeader("Accept", "application/json").
-		Get(buildAzureMetadataServiceURL(customResource))
+		Get(buildAzureMetadataServiceURL(customResource, cid))
 
 	if err != nil {
 		return "", err

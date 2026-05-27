@@ -177,6 +177,9 @@ func (c *InfisicalClient) getAuthStrategies() map[util.AuthMethod]func(cred inte
 		},
 		util.AZURE: func(cred interface{}) (credential MachineIdentityCredential, err error) {
 			if parsedCreds, ok := cred.(models.AzureCredential); ok {
+				if parsedCreds.ClientID != "" {
+					return c.auth.WithAzureClientID(parsedCreds.ClientID).AzureAuthLogin(parsedCreds.IdentityID, parsedCreds.Resource)
+				}
 				return c.auth.AzureAuthLogin(parsedCreds.IdentityID, parsedCreds.Resource)
 			}
 			return MachineIdentityCredential{}, fmt.Errorf("failed to parse AzureAuthCredential")
