@@ -36,6 +36,7 @@ type KubernetesCredential struct {
 type AzureCredential struct {
 	IdentityID string
 	Resource   string
+	ClientID   string
 }
 
 type OIDCCredential struct {

@@ -31,6 +31,8 @@ type AuthInterface interface {
 	GetOrganizationSlug() string
 	// When set, this will scope the login session to the specified sub-organization the machine identity has access to. If left empty, the session defaults to the organization where the machine identity was created in.
 	WithOrganizationSlug(organizationSlug string) AuthInterface
+	// When set, the next AzureAuthLogin call will request a token for the specified User-Assigned Managed Identity (UAMI) by its client ID. Leave unset for System-Assigned Managed Identity.
+	WithAzureClientID(clientID string) AuthInterface
 	UniversalAuthLogin(clientID string, clientSecret string) (credential MachineIdentityCredential, err error)
 	JwtAuthLogin(identityID string, jwt string) (credential MachineIdentityCredential, err error)
 	KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (credential MachineIdentityCredential, err error)
@@ -48,6 +50,7 @@ type AuthInterface interface {
 type Auth struct {
 	client           *InfisicalClient
 	organizationSlug string
+	azureClientID    string
 }
 
 func (a *Auth) SetAccessToken(accessToken string) {
@@ -60,6 +63,11 @@ func (a *Auth) GetOrganizationSlug() string {
 
 func (a *Auth) WithOrganizationSlug(organizationSlug string) AuthInterface {
 	a.organizationSlug = organizationSlug
+	return a
+}
+
+func (a *Auth) WithAzureClientID(clientID string) AuthInterface {
+	a.azureClientID = clientID
 	return a
 }
 
@@ -193,12 +201,16 @@ func (a *Auth) AzureAuthLogin(identityID string, resource string) (credential Ma
 	if identityID == "" {
 		identityID = os.Getenv(util.INFISICAL_AZURE_AUTH_IDENTITY_ID_ENV_NAME)
 	}
+	clientID := a.azureClientID
+	if clientID == "" {
+		clientID = os.Getenv(util.INFISICAL_AZURE_AUTH_CLIENT_ID_ENV_NAME)
+	}
 	organizationSlug := a.organizationSlug
 	if organizationSlug == "" {
 		organizationSlug = os.Getenv(util.INFISICAL_AUTH_ORGANIZATION_SLUG_ENV_NAME)
 	}
 
-	jwt, jwtError := util.GetAzureMetadataToken(a.client.httpClient, resource)
+	jwt, jwtError := util.GetAzureMetadataToken(a.client.httpClient, resource, clientID)
 
 	if jwtError != nil {
 		return MachineIdentityCredential{}, jwtError
@@ -216,7 +228,7 @@ func (a *Auth) AzureAuthLogin(identityID string, resource string) (credential Ma
 
 	a.client.setAccessToken(
 		credential,
-		models.AzureCredential{IdentityID: identityID, Resource: resource},
+		models.AzureCredential{IdentityID: identityID, Resource: resource, ClientID: clientID},
 		util.AZURE,
 	)
 	return credential, nil
