@@ -44,17 +44,17 @@ func buildAzureMetadataServiceURL(resource string, clientID string) string {
 }
 
 // GetAzureMetadataToken fetches a JWT from the Azure IMDS endpoint.
-// The optional clientID variadic targets a specific User-Assigned Managed Identity;
-// omit it (or pass "") for System-Assigned Managed Identity. Only the first value is used.
-func GetAzureMetadataToken(httpClient *resty.Client, customResource string, clientID ...string) (string, error) {
+// The optional clientID parameter targets a specific User-Assigned Managed Identity;
+// pass "" for System-Assigned Managed Identity.
+func GetAzureMetadataToken(httpClient *resty.Client, customResource string, clientID string) (string, error) {
 
 	type AzureMetadataResponse struct {
 		AccessToken string `json:"access_token"`
 	}
 
 	cid := ""
-	if len(clientID) > 0 {
-		cid = clientID[0]
+	if clientID != "" {
+		cid = clientID
 	}
 
 	metadataResponse := AzureMetadataResponse{}

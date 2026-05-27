@@ -110,7 +110,7 @@ func TestAzureUAMITokenFetch_SystemAssignedRegression(t *testing.T) {
 		t.Skip("Skipping system-assigned regression; set AZURE_TEST_SYSTEM_ASSIGNED=1 to enable")
 	}
 	httpClient := resty.New().SetTimeout(10 * time.Second)
-	token, err := util.GetAzureMetadataToken(httpClient, "")
+	token, err := util.GetAzureMetadataToken(httpClient, "", "")
 	if err != nil {
 		t.Fatalf("system-assigned IMDS fetch failed: %v", err)
 	}
