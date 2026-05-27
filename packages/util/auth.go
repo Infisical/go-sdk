@@ -52,18 +52,13 @@ func GetAzureMetadataToken(httpClient *resty.Client, customResource string, clie
 		AccessToken string `json:"access_token"`
 	}
 
-	cid := ""
-	if clientID != "" {
-		cid = clientID
-	}
-
 	metadataResponse := AzureMetadataResponse{}
 
 	response, err := httpClient.R().
 		SetResult(&metadataResponse).
 		SetHeader("Metadata", "true").
 		SetHeader("Accept", "application/json").
-		Get(buildAzureMetadataServiceURL(customResource, cid))
+		Get(buildAzureMetadataServiceURL(customResource, clientID))
 
 	if err != nil {
 		return "", err
