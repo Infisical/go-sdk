@@ -126,8 +126,8 @@ type Config struct {
 	CaCertificate        string
 	LogLevel             LogLevel // Specify the log level for the SDK. If set to debug, the SDK will print to stdout with verbose logging. Defaults to no logging.
 	UserAgent            string   `default:"infisical-go-sdk"` // User-Agent header to be used on requests sent by the SDK. Defaults to `infisical-go-sdk`. Do not modify this unless you have a reason to do so.
-	AutoTokenRefresh     bool     `default:"true"`             // Whether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true`.
-	SilentMode           bool     `default:"false"`            // If enabled, the SDK will not print any warnings to the console.
+	AutoTokenRefresh     *bool    // Whether or not to automatically refresh the auth token after using one of the .Auth() methods. Defaults to `true` when nil. Pass a pointer to `false` to disable.
+	SilentMode           bool     // If enabled, the SDK will not print any warnings to the console.
 	CacheExpiryInSeconds int      // Defines how long certain API responses should be cached in memory, in seconds. When set to a positive value, responses from specific fetch API requests (like secret fetching) will be cached for this duration. Set to 0 to disable caching. Defaults to 0.
 	CustomHeaders        map[string]string
 	RetryRequestsConfig  *RetryRequestsConfig
@@ -197,6 +197,14 @@ func setupLogger(logLevel LogLevel, logWriter io.Writer) zerolog.Logger {
 	return logger
 }
 
+// autoTokenRefreshEnabled returns true if AutoTokenRefresh is unset (nil) or
+// explicitly set to true. nil is treated as the default-on case so that
+// callers who omit the field keep the historical behavior, while callers that
+// pass a pointer to false can actually disable the background refresh.
+func autoTokenRefreshEnabled(cfg Config) bool {
+	return cfg.AutoTokenRefresh == nil || *cfg.AutoTokenRefresh
+}
+
 func setDefaults(cfg *Config) {
 	t := reflect.TypeOf(*cfg) // we need to dereference the pointer to get the struct type
 	v := reflect.ValueOf(cfg).Elem()
@@ -218,14 +226,13 @@ func setDefaults(cfg *Config) {
 			if v.Field(i).String() == "" {
 				v.Field(i).SetString(defaultVal)
 			}
-		case reflect.Bool:
-			if !v.Field(i).Bool() {
-				val, _ := strconv.ParseBool(defaultVal)
-				v.Field(i).SetBool(val)
-			}
 		}
 	}
 }
+
+// BoolPtr returns a pointer to the given bool value. Use this helper when
+// setting AutoTokenRefresh in Config, e.g.: AutoTokenRefresh: infisical.BoolPtr(false).
+func BoolPtr(v bool) *bool { return &v }
 
 func (c *InfisicalClient) setAccessToken(tokenDetails MachineIdentityCredential, credential interface{}, authMethod util.AuthMethod) {
 	c.mu.Lock()
@@ -286,7 +293,7 @@ func NewInfisicalClient(context context.Context, config Config) InfisicalClientI
 		client.cache = expirable.NewLRU[string, interface{}](1000, nil, time.Second*time.Duration(config.CacheExpiryInSeconds))
 	}
 
-	if config.AutoTokenRefresh {
+	if autoTokenRefreshEnabled(config) {
 		go client.handleTokenLifeCycle(context)
 	}
 
@@ -400,7 +407,7 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 		// goroutine might miss a refresh window due to timing issues (GC pauses,
 		// CPU contention, etc.). Most requests will not trigger a refresh here
 		// because the background goroutine handles proactive token management.
-		if config.AutoTokenRefresh {
+		if autoTokenRefreshEnabled(config) {
 			c.httpClient.OnBeforeRequest(c.beforeRequestAuthInterceptor)
 		}
 	} else {
@@ -469,7 +476,7 @@ func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
 			tokenDetails := c.tokenDetails
 			c.mu.RUnlock()
 
-			if config.AutoTokenRefresh && authMethod != "" && authMethod != util.ACCESS_TOKEN {
+			if autoTokenRefreshEnabled(config) && authMethod != "" && authMethod != util.ACCESS_TOKEN {
 				// Print warning once for short TTLs
 				if !config.SilentMode && !warningPrinted && tokenDetails.AccessTokenMaxTTL != 0 && tokenDetails.ExpiresIn != 0 {
 					if tokenDetails.AccessTokenMaxTTL < 60 || tokenDetails.ExpiresIn < 60 {
