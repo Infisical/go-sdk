@@ -9,7 +9,8 @@ import (
 
 func TestBatchCreateSecrets(t *testing.T) {
 	client := infisical.NewInfisicalClient(context.Background(), infisical.Config{
-		SiteUrl: "http://localhost:8080",
+		SiteUrl:          "http://localhost:8080",
+		AutoTokenRefresh: infisical.BoolPtr(false),
 	})
 
 	client.Auth().SetAccessToken("<token>")

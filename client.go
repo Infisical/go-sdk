@@ -230,6 +230,10 @@ func setDefaults(cfg *Config) {
 	}
 }
 
+// BoolPtr returns a pointer to the given bool value. Use this helper when
+// setting AutoTokenRefresh in Config, e.g.: AutoTokenRefresh: infisical.BoolPtr(false).
+func BoolPtr(v bool) *bool { return &v }
+
 func (c *InfisicalClient) setAccessToken(tokenDetails MachineIdentityCredential, credential interface{}, authMethod util.AuthMethod) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
