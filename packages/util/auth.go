@@ -196,10 +196,13 @@ func GetGCPIamServiceAccountToken(identityID string, serviceAccountKeyPath strin
 }
 
 func GetAwsRegion() (string, error) {
-	// in Lambda environments, the region is available in the AWS_REGION environment variable
-	region := os.Getenv("AWS_REGION")
+	// Lambda, ECS and most SDK-managed environments expose the region via the
+	// standard AWS env vars. Honor both before reaching for the metadata service.
+	if region := os.Getenv("AWS_REGION"); region != "" {
+		return region, nil
+	}
 
-	if region != "" {
+	if region := os.Getenv("AWS_DEFAULT_REGION"); region != "" {
 		return region, nil
 	}
 
@@ -216,21 +219,12 @@ func GetAwsRegion() (string, error) {
 }
 
 func RetrieveAwsCredentials() (credentials aws.Credentials, region string, err error) {
-	presetAwsCfg, err := config.LoadDefaultConfig(context.TODO())
-
-	if err == nil && presetAwsCfg.Region != "" {
-		creds, err := presetAwsCfg.Credentials.Retrieve(context.TODO())
-		if err == nil {
-			return creds, presetAwsCfg.Region, nil
-		}
-	}
-
-	awsRegion, err := GetAwsRegion()
-	if err != nil {
-		return aws.Credentials{}, "", err
-	}
-
-	awsCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(awsRegion))
+	// Resolve credentials through the standard AWS provider chain (env vars,
+	// shared config, ECS/EKS container credentials, then EC2 instance metadata).
+	// Credentials must not depend on the region being known: ECS task roles, for
+	// example, supply credentials via AWS_CONTAINER_CREDENTIALS_RELATIVE_URI while
+	// leaving the region to be set separately.
+	awsCfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return aws.Credentials{}, "", fmt.Errorf("unable to load SDK config, %v", err)
 	}
@@ -238,6 +232,18 @@ func RetrieveAwsCredentials() (credentials aws.Credentials, region string, err e
 	creds, err := awsCfg.Credentials.Retrieve(context.TODO())
 	if err != nil {
 		return aws.Credentials{}, "", fmt.Errorf("error retrieving credentials: %v", err)
+	}
+
+	// Prefer the region resolved by the SDK config; fall back to the env vars and,
+	// only as a last resort, the EC2 metadata service. Fetching the region must
+	// not short-circuit credential resolution, otherwise environments without IMDS
+	// (e.g. ECS Fargate) fail even when credentials are available.
+	awsRegion := awsCfg.Region
+	if awsRegion == "" {
+		awsRegion, err = GetAwsRegion()
+		if err != nil {
+			return aws.Credentials{}, "", err
+		}
 	}
 
 	return creds, awsRegion, nil
