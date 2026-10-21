@@ -1,6 +1,6 @@
 module github.com/infisical/go-sdk
 
-go 1.24.0
+go 1.26.10
 
 require (
 	cloud.google.com/go/iam v1.1.11
