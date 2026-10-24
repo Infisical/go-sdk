@@ -133,7 +133,10 @@ func (a *Auth) UniversalAuthLogin(clientID string, clientSecret string) (credent
 func (a *Auth) KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (credential MachineIdentityCredential, err error) {
 
 	if serviceAccountTokenPath == "" {
-		serviceAccountTokenPath = os.Getenv(util.DEFAULT_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)
+		serviceAccountTokenPath = os.Getenv(util.INFISICAL_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH_ENV_NAME)
+	}
+	if serviceAccountTokenPath == "" {
+		serviceAccountTokenPath = util.DEFAULT_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH
 	}
 	if identityID == "" {
 		identityID = os.Getenv(util.INFISICAL_KUBERNETES_IDENTITY_ID_ENV_NAME)
