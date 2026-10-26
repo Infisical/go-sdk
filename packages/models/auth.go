@@ -29,8 +29,9 @@ type AWSIAMCredential struct {
 }
 
 type KubernetesCredential struct {
-	IdentityID          string
-	ServiceAccountToken string
+	IdentityID              string
+	ServiceAccountToken     string
+	ServiceAccountTokenPath string // set when the token was read from disk, so re-authentication can read the rotated token
 }
 
 type AzureCredential struct {

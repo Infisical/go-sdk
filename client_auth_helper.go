@@ -171,6 +171,10 @@ func (c *InfisicalClient) getAuthStrategies() map[util.AuthMethod]func(cred inte
 		},
 		util.KUBERNETES: func(cred interface{}) (credential MachineIdentityCredential, err error) {
 			if parsedCreds, ok := cred.(models.KubernetesCredential); ok {
+				// Kubernetes rotates projected service account tokens, so re-read the token from disk instead of reusing the one from the initial login
+				if parsedCreds.ServiceAccountTokenPath != "" {
+					return c.auth.KubernetesAuthLogin(parsedCreds.IdentityID, parsedCreds.ServiceAccountTokenPath)
+				}
 				return c.auth.KubernetesRawServiceAccountTokenLogin(parsedCreds.IdentityID, parsedCreds.ServiceAccountToken)
 			}
 			return MachineIdentityCredential{}, fmt.Errorf("failed to parse KubernetesAuthCredential")

@@ -133,7 +133,7 @@ func (a *Auth) UniversalAuthLogin(clientID string, clientSecret string) (credent
 func (a *Auth) KubernetesAuthLogin(identityID string, serviceAccountTokenPath string) (credential MachineIdentityCredential, err error) {
 
 	if serviceAccountTokenPath == "" {
-		serviceAccountTokenPath = os.Getenv(util.DEFAULT_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)
+		serviceAccountTokenPath = os.Getenv(util.INFISICAL_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH_ENV_NAME)
 	}
 	if identityID == "" {
 		identityID = os.Getenv(util.INFISICAL_KUBERNETES_IDENTITY_ID_ENV_NAME)
@@ -141,6 +141,10 @@ func (a *Auth) KubernetesAuthLogin(identityID string, serviceAccountTokenPath st
 	organizationSlug := a.organizationSlug
 	if organizationSlug == "" {
 		organizationSlug = os.Getenv(util.INFISICAL_AUTH_ORGANIZATION_SLUG_ENV_NAME)
+	}
+
+	if serviceAccountTokenPath == "" {
+		serviceAccountTokenPath = util.DEFAULT_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH
 	}
 
 	serviceAccountToken, serviceAccountTokenErr := util.GetKubernetesServiceAccountToken(serviceAccountTokenPath)
@@ -161,7 +165,7 @@ func (a *Auth) KubernetesAuthLogin(identityID string, serviceAccountTokenPath st
 
 	a.client.setAccessToken(
 		credential,
-		models.KubernetesCredential{IdentityID: identityID, ServiceAccountToken: serviceAccountToken},
+		models.KubernetesCredential{IdentityID: identityID, ServiceAccountToken: serviceAccountToken, ServiceAccountTokenPath: serviceAccountTokenPath},
 		util.KUBERNETES,
 	)
 
