@@ -29,7 +29,10 @@ func TestKubernetesAuthReAuthReadsRotatedServiceAccountToken(t *testing.T) {
 		var body struct {
 			JWT string `json:"jwt"`
 		}
-		json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
 		mu.Lock()
 		receivedJWTs = append(receivedJWTs, body.JWT)
@@ -37,12 +40,14 @@ func TestKubernetesAuthReAuthReadsRotatedServiceAccountToken(t *testing.T) {
 
 		// max TTL equal to the token TTL forces re-authentication (not renewal) once the token is expiring
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"accessToken":       "access-token",
 			"expiresIn":         6,
 			"accessTokenMaxTTL": 6,
 			"tokenType":         "Bearer",
-		})
+		}); err != nil {
+			t.Errorf("Failed to encode login response: %v", err)
+		}
 	}))
 	defer server.Close()
 
