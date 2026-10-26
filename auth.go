@@ -143,6 +143,10 @@ func (a *Auth) KubernetesAuthLogin(identityID string, serviceAccountTokenPath st
 		organizationSlug = os.Getenv(util.INFISICAL_AUTH_ORGANIZATION_SLUG_ENV_NAME)
 	}
 
+	if serviceAccountTokenPath == "" {
+		serviceAccountTokenPath = util.DEFAULT_KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH
+	}
+
 	serviceAccountToken, serviceAccountTokenErr := util.GetKubernetesServiceAccountToken(serviceAccountTokenPath)
 
 	if serviceAccountTokenErr != nil {
@@ -161,7 +165,7 @@ func (a *Auth) KubernetesAuthLogin(identityID string, serviceAccountTokenPath st
 
 	a.client.setAccessToken(
 		credential,
-		models.KubernetesCredential{IdentityID: identityID, ServiceAccountToken: serviceAccountToken},
+		models.KubernetesCredential{IdentityID: identityID, ServiceAccountToken: serviceAccountToken, ServiceAccountTokenPath: serviceAccountTokenPath},
 		util.KUBERNETES,
 	)
 
