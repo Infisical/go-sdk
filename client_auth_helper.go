@@ -63,8 +63,9 @@ func (c *InfisicalClient) refreshTokenSynchronously(manualTrigger bool) error {
 	timeSinceFirstFetch := time.Since(firstFetchedTime).Seconds()
 	timeUntilMaxTTL := float64(tokenDetails.AccessTokenMaxTTL) - timeSinceFirstFetch
 
-	// If time until max TTL is less than the token TTL, we need to re-auth
-	needsReAuth := timeUntilMaxTTL < float64(tokenDetails.ExpiresIn)
+	// A max TTL of 0 means no maximum lifetime, so the token can be renewed indefinitely.
+	// Otherwise, re-auth once the remaining time before the max TTL is less than the token TTL.
+	needsReAuth := tokenDetails.AccessTokenMaxTTL > 0 && timeUntilMaxTTL < float64(tokenDetails.ExpiresIn)
 
 	c.logger.Debug().Msgf("timeSinceFirstFetch: %f, timeUntilMaxTTL: %f, needsReAuth: %v", timeSinceFirstFetch, timeUntilMaxTTL, needsReAuth)
 
