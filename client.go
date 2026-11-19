@@ -476,8 +476,9 @@ func isDialError(err error) bool {
 }
 
 // onceHTTPClient returns a client for a request that must not run twice, such as one that creates a resource. It
-// shares the SDK client's connection, base URL, headers, CA certificate and access token, but it retries only when the
-// connection never opened. Once a request may have reached the server, a retry could make the server handle it twice.
+// shares the SDK client's connection, base URL, headers, CA certificate, access token and retry delays, but it retries
+// only when the connection never opened. Once a request may have reached the server, a retry could make the server
+// handle it twice.
 func (c *InfisicalClient) onceHTTPClient() *resty.Client {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -487,13 +488,23 @@ func (c *InfisicalClient) onceHTTPClient() *resty.Client {
 		SetRetryCount(c.httpClient.RetryCount).
 		SetRetryWaitTime(c.httpClient.RetryWaitTime).
 		SetRetryMaxWaitTime(c.httpClient.RetryMaxWaitTime).
+		// Waits between retries as the SDK client does, including the delays set in RetryRequestsConfig.
+		SetRetryAfter(c.httpClient.RetryAfter).
 		AddRetryCondition(func(_ *resty.Response, err error) bool {
 			return isDialError(err)
 		})
 	once.Header = c.httpClient.Header.Clone()
-	once.Token = c.httpClient.Token
-	once.AuthScheme = c.httpClient.AuthScheme
 
+	// Reads the SDK client's access token before every attempt rather than once, so a retry sends the token the
+	// client has by then, after the background job may have signed in again. It runs before the refresh interceptor,
+	// which replaces the token on the request when it refreshes it.
+	once.OnBeforeRequest(func(_ *resty.Client, req *resty.Request) error {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
+		req.SetAuthScheme(c.httpClient.AuthScheme)
+		req.SetAuthToken(c.httpClient.Token)
+		return nil
+	})
 	if autoTokenRefreshEnabled(c.config) {
 		once.OnBeforeRequest(c.beforeRequestAuthInterceptor)
 	}

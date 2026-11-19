@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-resty/resty/v2"
 	sdkErrors "github.com/infisical/go-sdk/packages/errors"
 )
 
@@ -867,6 +868,44 @@ func TestRequestsThatMustNotRunTwiceAreRetriedWhenTheConnectionNeverOpened(t *te
 	}
 	if res.Token != "session-token" || len(server.recorded()) != 1 {
 		t.Fatalf("got %+v after %d requests", res, len(server.recorded()))
+	}
+}
+
+func TestRequestsThatMustNotRunTwiceSendTheTokenTheClientHasWhenTheyAreSent(t *testing.T) {
+	var authorization string
+	server := newAgentVaultServer(t, func(w http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+		jsonResponse(200, map[string]any{})(w, r)
+	})
+	client := NewInfisicalClient(context.Background(), Config{SiteUrl: server.url, AutoTokenRefresh: BoolPtr(false), SilentMode: true}).(*InfisicalClient)
+	client.Auth().SetAccessToken("first-token")
+	once := client.onceHTTPClient()
+	// As if the background job signed in again between two attempts.
+	client.Auth().SetAccessToken("second-token")
+
+	if _, err := once.R().Post("/v1/agent-vault/sessions"); err != nil {
+		t.Fatal(err)
+	}
+	if authorization != "Bearer second-token" {
+		t.Fatalf("sent Authorization %q", authorization)
+	}
+}
+
+func TestRequestsThatMustNotRunTwiceWaitBetweenRetriesAsConfigured(t *testing.T) {
+	client := NewInfisicalClient(context.Background(), Config{
+		SiteUrl: "http://127.0.0.1:1", AutoTokenRefresh: BoolPtr(false), SilentMode: true,
+		RetryRequestsConfig: &RetryRequestsConfig{
+			ExponentialBackoff: &ExponentialBackoffStrategy{BaseDelay: 3 * time.Second, MaxDelay: 3 * time.Second, MaxRetries: 2},
+		},
+	}).(*InfisicalClient)
+	once := client.onceHTTPClient()
+	if once.RetryAfter == nil {
+		t.Fatal("the client doesn't compute retry delays from RetryRequestsConfig")
+	}
+	// The first retry waits BaseDelay, with up to 20% jitter either way.
+	delay, err := once.RetryAfter(once, &resty.Response{Request: once.R()})
+	if err != nil || delay < 2400*time.Millisecond || delay > 3600*time.Millisecond {
+		t.Fatalf("got a delay of %s (%v), want about 3s", delay, err)
 	}
 }
 
