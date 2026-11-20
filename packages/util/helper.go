@@ -95,10 +95,8 @@ func TryParseErrorBody(res *resty.Response) string {
 		ReqId   string `json:"reqId"`
 	}
 
+	// stringify zod body entirely
 	if res.StatusCode() == 422 {
-		if issues, ok := formatValidationIssues(body); ok {
-			return issues
-		}
 		return body
 	}
 
@@ -111,49 +109,6 @@ func TryParseErrorBody(res *resty.Response) string {
 	}
 
 	return errorResponse.Message
-}
-
-// formatValidationIssues turns the issues of a 422 response, such as
-// {"message":[{"path":["services",0,"type"],"message":"Invalid discriminator value"}]}, into one entry per issue,
-// separated by semicolons: "services.0.type: Invalid discriminator value". It reports false for a body in any other
-// shape.
-func formatValidationIssues(body string) (string, bool) {
-	var response struct {
-		Message json.RawMessage `json:"message"`
-	}
-	if err := json.Unmarshal([]byte(body), &response); err != nil || len(response.Message) == 0 {
-		return "", false
-	}
-
-	var message string
-	if err := json.Unmarshal(response.Message, &message); err == nil {
-		return message, message != ""
-	}
-
-	var issues []struct {
-		Path    []any  `json:"path"`
-		Message string `json:"message"`
-	}
-	if err := json.Unmarshal(response.Message, &issues); err != nil || len(issues) == 0 {
-		return "", false
-	}
-
-	lines := make([]string, 0, len(issues))
-	for _, issue := range issues {
-		if issue.Message == "" {
-			return "", false
-		}
-		path := make([]string, len(issue.Path))
-		for i, segment := range issue.Path {
-			path[i] = fmt.Sprint(segment)
-		}
-		if len(path) == 0 {
-			lines = append(lines, issue.Message)
-		} else {
-			lines = append(lines, strings.Join(path, ".")+": "+issue.Message)
-		}
-	}
-	return strings.Join(lines, "; "), true
 }
 
 func TryExtractReqId(res *resty.Response) string {

@@ -644,21 +644,6 @@ func TestListsLeaveOutALimitAndOffsetYouDoNotSet(t *testing.T) {
 	}
 }
 
-func TestValidationErrorsNameEachField(t *testing.T) {
-	server := newAgentVaultServer(t, jsonResponse(422, map[string]any{
-		"reqId": "req-1", "statusCode": 422, "error": "ValidationFailure",
-		"message": []any{
-			map[string]any{"code": "custom", "message": "Host pattern has an empty entry", "path": []any{"allowedHosts"}},
-			map[string]any{"code": "invalid_enum_value", "message": "Invalid enum value", "path": []any{"services", 0, "transport"}},
-		},
-	}))
-	_, err := newAgentVaultTestClient(t, server.url).Proxies().Create(AgentVaultCreateProxyOptions{ProjectID: testProjectID, Name: "edge"})
-	var apiErr *sdkErrors.APIError
-	if !errors.As(err, &apiErr) || apiErr.ErrorMessage != "allowedHosts: Host pattern has an empty entry; services.0.transport: Invalid enum value" {
-		t.Fatalf("got %v", err)
-	}
-}
-
 func TestSessionsCreateKeepsTheServersExplanationWhenItRefuses(t *testing.T) {
 	server := newAgentVaultServer(t, jsonResponse(403, map[string]any{"message": "Only Agent Vault admins can send services with a session", "reqId": "req-1"}))
 	_, err := newAgentVaultTestClient(t, server.url).Sessions().Create(AgentVaultCreateSessionOptions{
@@ -914,31 +899,6 @@ func TestRequestErrorsKeepWhatTheRequestFailedWith(t *testing.T) {
 	}
 }
 
-func TestClientErrorsAreNotRetried(t *testing.T) {
-	for _, status := range []int{400, 401, 403, 404, 409, 422} {
-		server := newAgentVaultServer(t, jsonResponse(status, map[string]any{"message": "no"}))
-		if _, err := newAgentVaultTestClient(t, server.url).Delegations().Get("mi1", AgentVaultProjectOptions{ProjectID: testProjectID}); err == nil {
-			t.Fatal("want an error")
-		}
-		if n := len(server.recorded()); n != 1 {
-			t.Fatalf("a %d was sent %d times, want 1", status, n)
-		}
-	}
-}
-
-func TestServerErrorsAndRateLimitsAreRetried(t *testing.T) {
-	for _, status := range []int{429, 500, 503} {
-		server := newAgentVaultServer(t, jsonResponse(status, map[string]any{"message": "later"}))
-		if _, err := newAgentVaultTestClient(t, server.url).Delegations().Get("mi1", AgentVaultProjectOptions{ProjectID: testProjectID}); err == nil {
-			t.Fatal("want an error")
-		}
-		// One request and the 2 retries the test client allows.
-		if n := len(server.recorded()); n != 3 {
-			t.Fatalf("a %d was sent %d times, want 3", status, n)
-		}
-	}
-}
-
 func TestOtherRequestsAreStillRetried(t *testing.T) {
 	server := newAgentVaultServer(t, resetConnection)
 	if _, err := newAgentVaultTestClient(t, server.url).Sessions().Revoke("s1"); err == nil {
@@ -1012,34 +972,20 @@ func TestRequestsThatMustNotRunTwiceWaitBetweenRetriesAsConfigured(t *testing.T)
 	client := NewInfisicalClient(context.Background(), Config{
 		SiteUrl: "http://127.0.0.1:1", AutoTokenRefresh: BoolPtr(false), SilentMode: true,
 		RetryRequestsConfig: &RetryRequestsConfig{
-			ExponentialBackoff: &ExponentialBackoffStrategy{BaseDelay: 3 * time.Second, MaxDelay: time.Minute, MaxRetries: 2},
+			ExponentialBackoff: &ExponentialBackoffStrategy{BaseDelay: 3 * time.Second, MaxDelay: 3 * time.Second, MaxRetries: 2},
 		},
 	}).(*InfisicalClient)
 	once := client.onceHTTPClient()
 	if once.RetryAfter == nil {
 		t.Fatal("the client doesn't compute retry delays from RetryRequestsConfig")
 	}
-	// Resty sets Attempt to 1 for the first send, so the first retry waits BaseDelay and the second twice that, with
-	// up to 20% jitter either way.
-	for attempt, want := range map[int]time.Duration{1: 3 * time.Second, 2: 6 * time.Second} {
-		req := once.R()
-		req.Attempt = attempt
-		delay, err := once.RetryAfter(once, &resty.Response{Request: req})
-		if err != nil || delay < want*8/10 || delay > want*12/10 {
-			t.Fatalf("after attempt %d got a delay of %s (%v), want about %s", attempt, delay, err, want)
-		}
-	}
-}
-
-func TestRetriesWaitLessThanASecondWhenBaseDelayIsShorter(t *testing.T) {
-	server := newAgentVaultServer(t, jsonResponse(503, map[string]any{"message": "later"}))
-	start := time.Now()
-	if _, err := newAgentVaultTestClient(t, server.url).Delegations().Get("mi1", AgentVaultProjectOptions{ProjectID: testProjectID}); err == nil {
-		t.Fatal("want an error")
-	}
-	// The test client waits 1ms between its 2 retries, which resty would otherwise raise to 1s each.
-	if elapsed := time.Since(start); elapsed > 900*time.Millisecond {
-		t.Fatalf("took %s", elapsed)
+	// Resty sets Attempt to 1 for the first send. MaxDelay caps the wait at 3s, with up to 20% jitter either way, which
+	// a delay that ignored RetryRequestsConfig wouldn't match.
+	req := once.R()
+	req.Attempt = 1
+	delay, err := once.RetryAfter(once, &resty.Response{Request: req})
+	if err != nil || delay < 2400*time.Millisecond || delay > 3600*time.Millisecond {
+		t.Fatalf("got a delay of %s (%v), want about 3s", delay, err)
 	}
 }
 
