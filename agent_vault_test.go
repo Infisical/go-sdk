@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	agentvaultapi "github.com/infisical/go-sdk/packages/api/agentvault"
 	sdkErrors "github.com/infisical/go-sdk/packages/errors"
 )
 
@@ -105,15 +106,18 @@ func (s *agentVaultServer) only() recordedRequest {
 
 func newAgentVaultTestClient(t *testing.T, siteURL string) AgentVaultInterface {
 	t.Helper()
+	// Retries every failed request quickly, so a test can tell the requests that are retried from the ones that
+	// aren't.
+	return newAgentVaultTestClientWithBackoff(t, siteURL, &ExponentialBackoffStrategy{BaseDelay: time.Millisecond, MaxDelay: time.Millisecond, MaxRetries: 2})
+}
+
+func newAgentVaultTestClientWithBackoff(t *testing.T, siteURL string, backoff *ExponentialBackoffStrategy) AgentVaultInterface {
+	t.Helper()
 	client := NewInfisicalClient(context.Background(), Config{
-		SiteUrl:          siteURL,
-		AutoTokenRefresh: BoolPtr(false),
-		SilentMode:       true,
-		// Retries every failed request quickly, so a test can tell the requests that are retried from the ones that
-		// aren't.
-		RetryRequestsConfig: &RetryRequestsConfig{
-			ExponentialBackoff: &ExponentialBackoffStrategy{BaseDelay: time.Millisecond, MaxDelay: time.Millisecond, MaxRetries: 2},
-		},
+		SiteUrl:             siteURL,
+		AutoTokenRefresh:    BoolPtr(false),
+		SilentMode:          true,
+		RetryRequestsConfig: &RetryRequestsConfig{ExponentialBackoff: backoff},
 	})
 	client.Auth().SetAccessToken("test-token")
 	return client.AgentVault()
@@ -193,14 +197,33 @@ var exampleDelegation = map[string]any{
 
 // Proxies
 
-func TestProxiesUpdateSendsNullForEmptyAllowedHosts(t *testing.T) {
-	for _, hosts := range [][]string{{}, {""}, {" "}} {
-		server := newAgentVaultServer(t, jsonResponse(200, map[string]any{"proxy": exampleProxy}))
-		if _, err := newAgentVaultTestClient(t, server.url).Proxies().Update("p1", AgentVaultUpdateProxyOptions{AllowedHosts: hosts}); err != nil {
-			t.Fatal(err)
-		}
-		assertJSON(t, server.only().Body, map[string]any{"allowedHosts": nil})
+func TestProxiesUpdateSendsNullForAnEmptyAllowedHostsList(t *testing.T) {
+	server := newAgentVaultServer(t, jsonResponse(200, map[string]any{"proxy": exampleProxy}))
+	if _, err := newAgentVaultTestClient(t, server.url).Proxies().Update("p1", AgentVaultUpdateProxyOptions{AllowedHosts: []string{}}); err != nil {
+		t.Fatal(err)
 	}
+	assertJSON(t, server.only().Body, map[string]any{"allowedHosts": nil})
+}
+
+func TestProxiesUpdateRefusesAllowedHostsWithOnlyBlankEntries(t *testing.T) {
+	// strings.Split("", ",") returns []string{""}, so an empty setting must not remove every allowed host.
+	for _, hosts := range [][]string{{""}, {" ", ""}} {
+		server := newAgentVaultServer(t, jsonResponse(200, map[string]any{"proxy": exampleProxy}))
+		if _, err := newAgentVaultTestClient(t, server.url).Proxies().Update("p1", AgentVaultUpdateProxyOptions{AllowedHosts: hosts}); err == nil {
+			t.Fatalf("AllowedHosts %q was accepted", hosts)
+		}
+		if n := len(server.recorded()); n != 0 {
+			t.Fatalf("sent %d requests", n)
+		}
+	}
+}
+
+func TestProxiesUpdateSkipsBlankAllowedHosts(t *testing.T) {
+	server := newAgentVaultServer(t, jsonResponse(200, map[string]any{"proxy": exampleProxy}))
+	if _, err := newAgentVaultTestClient(t, server.url).Proxies().Update("p1", AgentVaultUpdateProxyOptions{AllowedHosts: []string{" api.github.com ", "", "*.slack.com"}}); err != nil {
+		t.Fatal(err)
+	}
+	assertJSON(t, server.only().Body, map[string]any{"allowedHosts": "api.github.com,*.slack.com"})
 }
 
 func TestProxiesUpdateLeavesOutValuesYouDoNotSet(t *testing.T) {
@@ -222,7 +245,7 @@ func TestProxiesUpdateSendsAnEmptyDescriptionToRemoveIt(t *testing.T) {
 func TestProxiesCreateSendsDefaultsAndJoinsAllowedHosts(t *testing.T) {
 	server := newAgentVaultServer(t, jsonResponse(200, map[string]any{"proxy": exampleProxy, "proxyToken": "proxy-token"}))
 	res, err := newAgentVaultTestClient(t, server.url).Proxies().Create(AgentVaultCreateProxyOptions{
-		ProjectID: testProjectID, Name: "edge", AllowedHosts: []string{"api.github.com", "*.slack.com"}, Description: "Sidecars",
+		ProjectID: testProjectID, Name: "edge", AllowedHosts: []string{"api.github.com", " *.slack.com", ""}, Description: "Sidecars",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -237,7 +260,7 @@ func TestProxiesCreateSendsDefaultsAndJoinsAllowedHosts(t *testing.T) {
 }
 
 func TestProxiesCreateLeavesOutEmptyAllowedHosts(t *testing.T) {
-	for _, hosts := range [][]string{nil, {}, {" "}} {
+	for _, hosts := range [][]string{nil, {}, {" "}, {"", ""}} {
 		server := newAgentVaultServer(t, jsonResponse(200, map[string]any{"proxy": exampleProxy, "proxyToken": "t"}))
 		if _, err := newAgentVaultTestClient(t, server.url).Proxies().Create(AgentVaultCreateProxyOptions{ProjectID: testProjectID, Name: "edge", AllowedHosts: hosts}); err != nil {
 			t.Fatal(err)
@@ -410,10 +433,14 @@ func TestSessionsCreateSendsInlineServicesWithTheirTypes(t *testing.T) {
 				Credential:   AgentVaultBearerCredential{Value: "lin_x"},
 				AllowedTools: []string{"list_issues"},
 			},
-			AgentVaultInlineDatabaseService{
-				Type: AgentVaultServiceTypePostgres, Name: "analytics", Host: "db.internal", Database: "analytics",
+			AgentVaultInlinePostgresService{
+				Name: "analytics", Host: "db.internal", Database: "analytics",
 				TLS:        &AgentVaultInlineTLS{Verify: BoolPtr(false)},
-				Credential: AgentVaultBasicCredential{Username: "readonly", Password: "pw"},
+				Credential: AgentVaultLoginCredential{Username: "readonly", Password: "pw"},
+			},
+			AgentVaultInlineMySQLService{
+				Name: "shop", Host: "mysql.internal", Database: "shop",
+				Credential: AgentVaultLoginCredential{Username: "root"},
 			},
 			AgentVaultInlineSSHService{
 				Name: "bastion", Host: "10.0.0.5", Port: 2222,
@@ -438,9 +465,24 @@ func TestSessionsCreateSendsInlineServicesWithTheirTypes(t *testing.T) {
 			"credential": map[string]any{"type": "bearer", "value": "lin_x"}, "allowedTools": []any{"list_issues"}},
 		map[string]any{"type": "postgres", "name": "analytics", "host": "db.internal", "database": "analytics",
 			"tls": map[string]any{"verify": false}, "credential": map[string]any{"type": "basic", "username": "readonly", "password": "pw"}},
+		map[string]any{"type": "mysql", "name": "shop", "host": "mysql.internal", "database": "shop",
+			"credential": map[string]any{"type": "basic", "username": "root"}},
 		map[string]any{"type": "ssh", "name": "bastion", "host": "10.0.0.5", "port": 2222,
 			"credential": map[string]any{"type": "ssh-key", "username": "ops", "privateKey": "-----BEGIN OPENSSH PRIVATE KEY-----"}},
 	})
+}
+
+func TestInlineMCPServicesDefaultToStreamableHTTP(t *testing.T) {
+	assertJSON(t, AgentVaultInlineMCPService{ServerURL: "https://mcp.example.com/mcp", Credential: AgentVaultBearerCredential{Value: "x"}},
+		map[string]any{"type": "mcp", "serverUrl": "https://mcp.example.com/mcp", "transport": "streamable-http", "credential": map[string]any{"type": "bearer", "value": "x"}})
+}
+
+func TestLoginCredentialsAlwaysSendTheUsername(t *testing.T) {
+	// The API needs a username to log in to a database or SSH server, so an empty one is sent for it to refuse
+	// by name rather than dropped.
+	assertJSON(t, AgentVaultLoginCredential{Password: "pw"}, map[string]any{"type": "basic", "username": "", "password": "pw"})
+	assertJSON(t, AgentVaultInlineSSHService{Name: "bastion", Host: "10.0.0.5", Credential: AgentVaultLoginCredential{Username: "ops", Password: "pw"}},
+		map[string]any{"type": "ssh", "name": "bastion", "host": "10.0.0.5", "credential": map[string]any{"type": "basic", "username": "ops", "password": "pw"}})
 }
 
 func TestInlineServicesSendAnEmptyAllowListRatherThanAllowingEverything(t *testing.T) {
@@ -574,7 +616,7 @@ func TestSessionsListSendsEachMetadataPairAsItsOwnParameter(t *testing.T) {
 	}
 	q := server.only().Query
 	assertJSON(t, q["metadata"], []string{"channel=C1", "runId=8812"})
-	if q.Get("status") != "active,expired" || q.Get("scope") != "mine" || q.Get("limit") != "20" || q.Get("offset") != "0" {
+	if q.Get("status") != "active,expired" || q.Get("scope") != "mine" || q.Get("limit") != "20" || q.Has("offset") {
 		t.Fatalf("query: %v", q)
 	}
 }
@@ -588,6 +630,32 @@ func TestSessionsListLeavesOutAnEmptyMetadataFilter(t *testing.T) {
 		if q := server.only().Query; q.Has("metadata") || q.Has("status") {
 			t.Fatalf("query: %v", q)
 		}
+	}
+}
+
+func TestListsLeaveOutALimitAndOffsetYouDoNotSet(t *testing.T) {
+	server := newAgentVaultServer(t, jsonResponse(200, map[string]any{"sessions": []any{}, "totalCount": 0}))
+	httpClient := resty.New().SetBaseURL(server.url + "/api")
+	if _, err := agentvaultapi.CallListSessionsV1(httpClient, agentvaultapi.ListSessionsRequest{ProjectID: testProjectID}); err != nil {
+		t.Fatal(err)
+	}
+	if q := server.only().Query; q.Has("limit") || q.Has("offset") {
+		t.Fatalf("sent query %s", q.Encode())
+	}
+}
+
+func TestValidationErrorsNameEachField(t *testing.T) {
+	server := newAgentVaultServer(t, jsonResponse(422, map[string]any{
+		"reqId": "req-1", "statusCode": 422, "error": "ValidationFailure",
+		"message": []any{
+			map[string]any{"code": "custom", "message": "Host pattern has an empty entry", "path": []any{"allowedHosts"}},
+			map[string]any{"code": "invalid_enum_value", "message": "Invalid enum value", "path": []any{"services", 0, "transport"}},
+		},
+	}))
+	_, err := newAgentVaultTestClient(t, server.url).Proxies().Create(AgentVaultCreateProxyOptions{ProjectID: testProjectID, Name: "edge"})
+	var apiErr *sdkErrors.APIError
+	if !errors.As(err, &apiErr) || apiErr.ErrorMessage != "allowedHosts: Host pattern has an empty entry; services.0.transport: Invalid enum value" {
+		t.Fatalf("got %v", err)
 	}
 }
 
@@ -824,6 +892,53 @@ func TestRequestsThatMustNotRunTwiceAreNotRetriedOnceTheyMayHaveReachedTheServer
 	}
 }
 
+func TestRequestErrorsKeepWhatTheRequestFailedWith(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	refused := "http://" + listener.Addr().String()
+	_ = listener.Close()
+
+	_, err = newAgentVaultTestClient(t, refused).Proxies().Create(AgentVaultCreateProxyOptions{ProjectID: testProjectID, Name: "edge"})
+	var opErr *net.OpError
+	if !errors.As(err, &opErr) || opErr.Op != "dial" {
+		t.Fatalf("a refused connection gave %v, want a *net.OpError from dial", err)
+	}
+
+	server := newAgentVaultServer(t, resetConnection)
+	_, err = newAgentVaultTestClient(t, server.url).Proxies().Create(AgentVaultCreateProxyOptions{ProjectID: testProjectID, Name: "edge"})
+	var requestErr *sdkErrors.RequestError
+	if !errors.As(err, &requestErr) || errors.Unwrap(requestErr) == nil || (errors.As(err, &opErr) && opErr.Op == "dial") {
+		t.Fatalf("a dropped connection gave %v, want a request error that isn't from dial", err)
+	}
+}
+
+func TestClientErrorsAreNotRetried(t *testing.T) {
+	for _, status := range []int{400, 401, 403, 404, 409, 422} {
+		server := newAgentVaultServer(t, jsonResponse(status, map[string]any{"message": "no"}))
+		if _, err := newAgentVaultTestClient(t, server.url).Delegations().Get("mi1", AgentVaultProjectOptions{ProjectID: testProjectID}); err == nil {
+			t.Fatal("want an error")
+		}
+		if n := len(server.recorded()); n != 1 {
+			t.Fatalf("a %d was sent %d times, want 1", status, n)
+		}
+	}
+}
+
+func TestServerErrorsAndRateLimitsAreRetried(t *testing.T) {
+	for _, status := range []int{429, 500, 503} {
+		server := newAgentVaultServer(t, jsonResponse(status, map[string]any{"message": "later"}))
+		if _, err := newAgentVaultTestClient(t, server.url).Delegations().Get("mi1", AgentVaultProjectOptions{ProjectID: testProjectID}); err == nil {
+			t.Fatal("want an error")
+		}
+		// One request and the 2 retries the test client allows.
+		if n := len(server.recorded()); n != 3 {
+			t.Fatalf("a %d was sent %d times, want 3", status, n)
+		}
+	}
+}
+
 func TestOtherRequestsAreStillRetried(t *testing.T) {
 	server := newAgentVaultServer(t, resetConnection)
 	if _, err := newAgentVaultTestClient(t, server.url).Sessions().Revoke("s1"); err == nil {
@@ -862,7 +977,9 @@ func TestRequestsThatMustNotRunTwiceAreRetriedWhenTheConnectionNeverOpened(t *te
 		_ = httpServer.Serve(reopened)
 	}()
 
-	res, err := newAgentVaultTestClient(t, "http://"+addr).Sessions().Create(AgentVaultCreateSessionOptions{ProjectID: testProjectID, AccessBundle: "eng"})
+	// Waits 100ms, then 200ms, then 400ms, so a retry comes after the server is back.
+	av := newAgentVaultTestClientWithBackoff(t, "http://"+addr, &ExponentialBackoffStrategy{BaseDelay: 100 * time.Millisecond, MaxDelay: time.Second, MaxRetries: 3})
+	res, err := av.Sessions().Create(AgentVaultCreateSessionOptions{ProjectID: testProjectID, AccessBundle: "eng"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -895,17 +1012,34 @@ func TestRequestsThatMustNotRunTwiceWaitBetweenRetriesAsConfigured(t *testing.T)
 	client := NewInfisicalClient(context.Background(), Config{
 		SiteUrl: "http://127.0.0.1:1", AutoTokenRefresh: BoolPtr(false), SilentMode: true,
 		RetryRequestsConfig: &RetryRequestsConfig{
-			ExponentialBackoff: &ExponentialBackoffStrategy{BaseDelay: 3 * time.Second, MaxDelay: 3 * time.Second, MaxRetries: 2},
+			ExponentialBackoff: &ExponentialBackoffStrategy{BaseDelay: 3 * time.Second, MaxDelay: time.Minute, MaxRetries: 2},
 		},
 	}).(*InfisicalClient)
 	once := client.onceHTTPClient()
 	if once.RetryAfter == nil {
 		t.Fatal("the client doesn't compute retry delays from RetryRequestsConfig")
 	}
-	// The first retry waits BaseDelay, with up to 20% jitter either way.
-	delay, err := once.RetryAfter(once, &resty.Response{Request: once.R()})
-	if err != nil || delay < 2400*time.Millisecond || delay > 3600*time.Millisecond {
-		t.Fatalf("got a delay of %s (%v), want about 3s", delay, err)
+	// Resty sets Attempt to 1 for the first send, so the first retry waits BaseDelay and the second twice that, with
+	// up to 20% jitter either way.
+	for attempt, want := range map[int]time.Duration{1: 3 * time.Second, 2: 6 * time.Second} {
+		req := once.R()
+		req.Attempt = attempt
+		delay, err := once.RetryAfter(once, &resty.Response{Request: req})
+		if err != nil || delay < want*8/10 || delay > want*12/10 {
+			t.Fatalf("after attempt %d got a delay of %s (%v), want about %s", attempt, delay, err, want)
+		}
+	}
+}
+
+func TestRetriesWaitLessThanASecondWhenBaseDelayIsShorter(t *testing.T) {
+	server := newAgentVaultServer(t, jsonResponse(503, map[string]any{"message": "later"}))
+	start := time.Now()
+	if _, err := newAgentVaultTestClient(t, server.url).Delegations().Get("mi1", AgentVaultProjectOptions{ProjectID: testProjectID}); err == nil {
+		t.Fatal("want an error")
+	}
+	// The test client waits 1ms between its 2 retries, which resty would otherwise raise to 1s each.
+	if elapsed := time.Since(start); elapsed > 900*time.Millisecond {
+		t.Fatalf("took %s", elapsed)
 	}
 }
 

@@ -55,7 +55,8 @@ func callOnPath[T any](operation string, req *resty.Request, method string, form
 	return call[T](operation, req, method, basePath+fmt.Sprintf(format, seg))
 }
 
-// query builds a query string, leaving out empty values so the server applies its defaults.
+// query builds a query string, leaving out empty strings and zeros so the server applies its defaults. The API
+// refuses a limit of 0, and an offset of 0 is its default.
 type query url.Values
 
 func (q query) set(key string, value string) {
@@ -65,7 +66,9 @@ func (q query) set(key string, value string) {
 }
 
 func (q query) setInt(key string, value int) {
-	url.Values(q).Set(key, strconv.Itoa(value))
+	if value != 0 {
+		url.Values(q).Set(key, strconv.Itoa(value))
+	}
 }
 
 // setBool sends a boolean as "true" or "false", the only forms the API reads, and leaves it out when nil.

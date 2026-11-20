@@ -12,6 +12,7 @@ import (
 	"math"
 	"math/rand"
 	"net"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
@@ -317,20 +318,25 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 			SetBaseURL(config.SiteUrl)
 
 		maxRetries := 3
+		minWaitTime := 1 * time.Second
 		maxWaitTime := 30 * time.Second
 
 		if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
 			maxRetries = config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
+			// Resty raises any delay from RetryAfter below the retry wait time up to it, which would override a
+			// BaseDelay under a second.
+			minWaitTime = time.Millisecond
 			maxWaitTime = 10 * time.Minute
 		}
 
 		c.httpClient.SetRetryCount(maxRetries).
-			SetRetryWaitTime(1 * time.Second).
+			SetRetryWaitTime(minWaitTime).
 			SetRetryMaxWaitTime(maxWaitTime).
 			SetRetryAfter(func(rc *resty.Client, r *resty.Response) (time.Duration, error) {
 
 				if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
-					delay := config.RetryRequestsConfig.ExponentialBackoff.GetDelay(r.Request.Attempt)
+					// Resty counts the first send as attempt 1, so the first retry follows attempt 1 and waits BaseDelay.
+					delay := config.RetryRequestsConfig.ExponentialBackoff.GetDelay(max(r.Request.Attempt-1, 0))
 					if !config.SilentMode {
 						util.PrintWarning(c.logger, fmt.Sprintf("Request failed, [url=%s] [status=%d] [method=%s]\nRetrying in %s (attempt %d)", r.Request.URL, r.StatusCode(), r.Request.Method, delay.String(), r.Request.Attempt))
 					}
@@ -361,7 +367,9 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 				}
 
 				if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
-					if (r != nil && r.IsError()) || err != nil {
+					// A 4xx other than 429 gives the same answer when sent again, such as a 404 for a delegation that
+					// doesn't exist, so only server errors, rate limits and failed requests are retried.
+					if (r != nil && isRetryableStatus(r.StatusCode())) || err != nil {
 						return r.Request.Attempt <= config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
 					}
 				}
@@ -467,6 +475,11 @@ func (c *InfisicalClient) Ssh() SshInterface {
 
 func (c *InfisicalClient) AgentVault() AgentVaultInterface {
 	return c.agentVault
+}
+
+// isRetryableStatus reports whether a request that got this status may succeed if it's sent again.
+func isRetryableStatus(status int) bool {
+	return status >= 500 || status == http.StatusTooManyRequests
 }
 
 // isDialError reports whether err happened while connecting, before any of the request was sent.

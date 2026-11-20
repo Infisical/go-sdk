@@ -102,7 +102,8 @@ type AgentVaultListDelegationsResult = api.ListDelegationsResponse
 type AgentVaultInlineService = api.InlineService
 type AgentVaultInlineHTTPService = api.InlineHTTPService
 type AgentVaultInlineMCPService = api.InlineMCPService
-type AgentVaultInlineDatabaseService = api.InlineDatabaseService
+type AgentVaultInlinePostgresService = api.InlinePostgresService
+type AgentVaultInlineMySQLService = api.InlineMySQLService
 type AgentVaultInlineSSHService = api.InlineSSHService
 type AgentVaultInlineTLS = api.InlineTLS
 type AgentVaultInlineCustomHeader = api.InlineCustomHeader
@@ -111,6 +112,7 @@ type AgentVaultHTTPCredential = api.HTTPCredential
 type AgentVaultSSHCredential = api.SSHCredential
 type AgentVaultBearerCredential = api.BearerCredential
 type AgentVaultBasicCredential = api.BasicCredential
+type AgentVaultLoginCredential = api.LoginCredential
 type AgentVaultPassthroughCredential = api.PassthroughCredential
 type AgentVaultSSHKeyCredential = api.SSHKeyCredential
 
@@ -156,7 +158,7 @@ type AgentVaultCreateProxyOptions struct {
 	// cover. Defaults to AgentVaultTrafficPolicyAnyHost.
 	TrafficPolicy AgentVaultTrafficPolicy
 	// Hosts that stay reachable under the service-hosts traffic policy even though none of the session's services
-	// cover them.
+	// cover them. Blank entries are skipped.
 	AllowedHosts []string
 	// How often, in seconds, the proxy refreshes its sessions and settings (10-300). Defaults to 60.
 	PollInterval int
@@ -171,7 +173,8 @@ type AgentVaultUpdateProxyOptions struct {
 	// Which hosts an agent may reach through this proxy.
 	TrafficPolicy AgentVaultTrafficPolicy
 	// Hosts that stay reachable under the service-hosts traffic policy. Leave it nil to keep them, or set an empty,
-	// non-nil list to remove every allowed host.
+	// non-nil list to remove every allowed host. Blank entries are skipped, and a list with only blank entries is
+	// refused, so a host list read from an empty setting can't remove every allowed host by accident.
 	AllowedHosts []string
 	// How often, in seconds, the proxy refreshes its sessions and settings (10-300).
 	PollInterval int
@@ -504,11 +507,16 @@ func withDefault[T comparable](value T, fallback T) T {
 	return value
 }
 
-// joinHosts joins host patterns into the one comma-separated string the API takes. The API rejects an empty string,
-// so it reports false for one.
+// joinHosts joins host patterns into the one comma-separated string the API takes, trimming each and skipping blank
+// ones, which the API refuses. It reports false when no host is left.
 func joinHosts(allowedHosts []string) (string, bool) {
-	hosts := strings.Join(allowedHosts, ",")
-	return hosts, strings.TrimSpace(hosts) != ""
+	hosts := make([]string, 0, len(allowedHosts))
+	for _, host := range allowedHosts {
+		if host = strings.TrimSpace(host); host != "" {
+			hosts = append(hosts, host)
+		}
+	}
+	return strings.Join(hosts, ","), len(hosts) > 0
 }
 
 // toWireTrafficPolicy sends service-hosts by its old name, which every Infisical version accepts.
@@ -620,11 +628,15 @@ func (p *AgentVaultProxies) Update(proxyID string, options AgentVaultUpdateProxy
 		Description:   options.Description,
 	}
 	if options.AllowedHosts != nil {
-		// An empty list removes every allowed host, which the API takes as null.
-		if hosts, ok := joinHosts(options.AllowedHosts); ok {
+		hosts, ok := joinHosts(options.AllowedHosts)
+		switch {
+		case ok:
 			request.AllowedHosts = api.NullableOf(&hosts)
-		} else {
+		case len(options.AllowedHosts) == 0:
+			// An empty list removes every allowed host, which the API takes as null.
 			request.AllowedHosts = api.NullableOf[string](nil)
+		default:
+			return AgentVaultProxy{}, errors.New("agent vault: AllowedHosts has only blank entries: set it to an empty list to remove every allowed host")
 		}
 	}
 

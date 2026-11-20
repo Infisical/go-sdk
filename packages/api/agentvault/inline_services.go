@@ -9,7 +9,7 @@ import "encoding/json"
 // MarshalJSON methods marshal a copy under a local type with no methods, which keeps them from calling themselves.
 
 // InlineService is a service sent with a session: an InlineHTTPService, an InlineMCPService, an
-// InlineDatabaseService or an InlineSSHService.
+// InlinePostgresService, an InlineMySQLService or an InlineSSHService.
 type InlineService interface {
 	isInlineService()
 }
@@ -20,7 +20,7 @@ type HTTPCredential interface {
 	isHTTPCredential()
 }
 
-// SSHCredential is the credential of an InlineSSHService: a BasicCredential or an SSHKeyCredential.
+// SSHCredential is the credential of an InlineSSHService: a LoginCredential or an SSHKeyCredential.
 type SSHCredential interface {
 	isSSHCredential()
 }
@@ -46,19 +46,34 @@ func (c BearerCredential) MarshalJSON() ([]byte, error) {
 	}{"bearer", fields(c)})
 }
 
-// BasicCredential is a username and password. For an HTTP service the proxy sends it as HTTP basic authentication,
-// and you set a username, a password, or both. For a database or SSH service it's the account the proxy logs in as,
-// and the username is required.
+// BasicCredential is a username and password that the proxy sends to an HTTP service as HTTP basic authentication.
+// Set a username, a password, or both.
 type BasicCredential struct {
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
 
 func (BasicCredential) isHTTPCredential() {}
-func (BasicCredential) isSSHCredential()  {}
 
 func (c BasicCredential) MarshalJSON() ([]byte, error) {
 	type fields BasicCredential
+	return json.Marshal(struct {
+		Type string `json:"type"`
+		fields
+	}{"basic", fields(c)})
+}
+
+// LoginCredential is the account the proxy logs in to a database or SSH server as.
+type LoginCredential struct {
+	// Required.
+	Username string `json:"username"`
+	Password string `json:"password,omitempty"`
+}
+
+func (LoginCredential) isSSHCredential() {}
+
+func (c LoginCredential) MarshalJSON() ([]byte, error) {
+	type fields LoginCredential
 	return json.Marshal(struct {
 		Type string `json:"type"`
 		fields
@@ -149,7 +164,8 @@ type InlineMCPService struct {
 	// What the service is for, up to 256 characters. Agents in the session can read it, so never put a secret in it.
 	Description string `json:"description,omitempty"`
 	// The MCP server's URL, such as "https://mcp.example.com/mcp". The service covers its host.
-	ServerURL  string           `json:"serverUrl"`
+	ServerURL string `json:"serverUrl"`
+	// Defaults to MCPTransportStreamableHTTP.
 	Transport  MCPTransport     `json:"transport"`
 	Credential BearerCredential `json:"credential"`
 	// The MCP tools that agents can call through the service, by exact, case-sensitive name: each 1 to 128 letters,
@@ -165,6 +181,9 @@ type InlineMCPService struct {
 func (InlineMCPService) isInlineService() {}
 
 func (s InlineMCPService) MarshalJSON() ([]byte, error) {
+	if s.Transport == "" {
+		s.Transport = MCPTransportStreamableHTTP
+	}
 	type fields InlineMCPService
 	return json.Marshal(struct {
 		Type string `json:"type"`
@@ -182,27 +201,61 @@ type InlineTLS struct {
 	CA string `json:"ca,omitempty"`
 }
 
-// InlineDatabaseService is a PostgreSQL or MySQL database sent with a session. The agent reaches it with
+// InlinePostgresService is a PostgreSQL database sent with a session. The agent reaches it with
 // `infisical agent-vault connect`.
-type InlineDatabaseService struct {
-	// ServiceTypePostgres or ServiceTypeMySQL.
-	Type ServiceType `json:"type"`
+type InlinePostgresService struct {
 	// The name the agent connects with, in lowercase letters, numbers and hyphens, up to 63 characters.
 	Name string `json:"name"`
 	// What the service is for, up to 256 characters. Agents in the session can read it, so never put a secret in it.
 	Description string `json:"description,omitempty"`
 	// The database server's host name or IP address, as the proxy reaches it. No scheme, port or path.
 	Host string `json:"host"`
-	// Defaults to 5432 for postgres and 3306 for mysql.
+	// Defaults to 5432.
 	Port int `json:"port,omitempty"`
 	// The database the proxy logs in to.
 	Database string     `json:"database"`
 	TLS      *InlineTLS `json:"tls,omitempty"`
 	// The account the proxy logs in as.
-	Credential BasicCredential `json:"credential"`
+	Credential LoginCredential `json:"credential"`
 }
 
-func (InlineDatabaseService) isInlineService() {}
+func (InlinePostgresService) isInlineService() {}
+
+func (s InlinePostgresService) MarshalJSON() ([]byte, error) {
+	type fields InlinePostgresService
+	return json.Marshal(struct {
+		Type string `json:"type"`
+		fields
+	}{string(ServiceTypePostgres), fields(s)})
+}
+
+// InlineMySQLService is a MySQL database sent with a session. The agent reaches it with
+// `infisical agent-vault connect`.
+type InlineMySQLService struct {
+	// The name the agent connects with, in lowercase letters, numbers and hyphens, up to 63 characters.
+	Name string `json:"name"`
+	// What the service is for, up to 256 characters. Agents in the session can read it, so never put a secret in it.
+	Description string `json:"description,omitempty"`
+	// The database server's host name or IP address, as the proxy reaches it. No scheme, port or path.
+	Host string `json:"host"`
+	// Defaults to 3306.
+	Port int `json:"port,omitempty"`
+	// The database the proxy logs in to.
+	Database string     `json:"database"`
+	TLS      *InlineTLS `json:"tls,omitempty"`
+	// The account the proxy logs in as.
+	Credential LoginCredential `json:"credential"`
+}
+
+func (InlineMySQLService) isInlineService() {}
+
+func (s InlineMySQLService) MarshalJSON() ([]byte, error) {
+	type fields InlineMySQLService
+	return json.Marshal(struct {
+		Type string `json:"type"`
+		fields
+	}{string(ServiceTypeMySQL), fields(s)})
+}
 
 // InlineSSHService is an SSH server sent with a session. The agent reaches it with `infisical agent-vault connect`.
 type InlineSSHService struct {
