@@ -51,6 +51,18 @@ func TestBackoffRetriesServerErrorsAndRateLimitsButNotClientErrors(t *testing.T)
 	}
 }
 
+func TestBackoffRetriesThreeTimesWhenMaxRetriesIsUnset(t *testing.T) {
+	server, requests := statusServer(t, 503, map[string]any{"message": "later"})
+	client := newBackoffTestClient(t, server.URL, &ExponentialBackoffStrategy{BaseDelay: time.Millisecond, MaxDelay: time.Millisecond})
+	if _, err := client.httpClient.R().Get("/v1/secrets/missing"); err != nil {
+		t.Fatal(err)
+	}
+	// The first send and 3 retries.
+	if got := requests.Load(); got != 4 {
+		t.Fatalf("sent %d requests, want 4", got)
+	}
+}
+
 func TestBackoffFirstRetryWaitsBaseDelay(t *testing.T) {
 	client := newBackoffTestClient(t, "http://127.0.0.1:1", &ExponentialBackoffStrategy{BaseDelay: 3 * time.Second, MaxDelay: time.Minute, MaxRetries: 2})
 	// Resty sets Attempt to 1 for the first send, so the first retry waits BaseDelay and the second twice that, with

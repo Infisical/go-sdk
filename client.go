@@ -324,7 +324,10 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 		maxWaitTime := 30 * time.Second
 
 		if config.RetryRequestsConfig != nil && config.RetryRequestsConfig.ExponentialBackoff != nil {
-			maxRetries = config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
+			// GetDelay applies the same default, but only once a request has already failed, after the retry count is set.
+			if config.RetryRequestsConfig.ExponentialBackoff.MaxRetries != 0 {
+				maxRetries = config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
+			}
 			// Resty raises any delay from RetryAfter below the retry wait time up to it, which would override a
 			// BaseDelay under a second.
 			minWaitTime = time.Millisecond
@@ -372,7 +375,7 @@ func (c *InfisicalClient) UpdateConfiguration(config Config) {
 					// A 4xx other than 429 gives the same answer when sent again, such as a 404 for a secret that doesn't
 					// exist, so only server errors, rate limits and failed requests are retried.
 					if (r != nil && isRetryableStatus(r.StatusCode())) || err != nil {
-						return r.Request.Attempt <= config.RetryRequestsConfig.ExponentialBackoff.MaxRetries
+						return r.Request.Attempt <= maxRetries
 					}
 				}
 
