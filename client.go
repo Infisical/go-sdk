@@ -33,6 +33,14 @@ const (
 	LogLevelDebug LogLevel = "debug"
 )
 
+// invalidateCache drops every cached read response. It is called after a
+// successful write so that later reads do not return the old values.
+func (c *InfisicalClient) invalidateCache() {
+	if c.cache != nil {
+		c.cache.Purge()
+	}
+}
+
 type InfisicalClient struct {
 	authMethod       util.AuthMethod
 	credential       interface{}
