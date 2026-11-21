@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -107,5 +108,26 @@ func TestValidationErrorsNameEachField(t *testing.T) {
 	if !errors.As(sdkErrors.NewAPIErrorWithResponse("CallListSecretsV3", res), &apiErr) ||
 		apiErr.ErrorMessage != "limit: Number must be greater than or equal to 1; secrets.0.secretKey: Required" {
 		t.Fatalf("got %+v", apiErr)
+	}
+}
+
+func TestRequestErrorsKeepWhatTheRequestFailedWith(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	refused := "http://" + listener.Addr().String()
+	_ = listener.Close()
+
+	client := newBackoffTestClient(t, refused, &ExponentialBackoffStrategy{BaseDelay: time.Millisecond, MaxDelay: time.Millisecond, MaxRetries: 1})
+	_, err = client.Secrets().Retrieve(RetrieveSecretOptions{SecretKey: "API_KEY", ProjectID: "p1", Environment: "dev"})
+	var requestErr *sdkErrors.RequestError
+	var opErr *net.OpError
+	if !errors.As(err, &requestErr) || !errors.As(err, &opErr) || opErr.Op != "dial" {
+		t.Fatalf("a refused connection gave %v, want a request error holding a *net.OpError from dial", err)
+	}
+
+	if !errors.Is(sdkErrors.NewRequestError("CallRetrieveSecretV3", context.Canceled), context.Canceled) {
+		t.Fatal("a request error hides the context error it failed with")
 	}
 }
