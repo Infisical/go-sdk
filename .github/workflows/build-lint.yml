@@ -22,5 +22,7 @@ jobs:
                   cache: false
             - run: go mod download
             - run: go build -v .
+            # The test directory holds integration tests that need live credentials.
+            - run: go test . ./packages/...
             - name: Run linters
               uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0

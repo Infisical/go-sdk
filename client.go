@@ -57,6 +57,7 @@ type InfisicalClient struct {
 	dynamicSecrets DynamicSecretsInterface
 	kms            KmsInterface
 	ssh            SshInterface
+	agentVault     AgentVaultInterface
 
 	logger zerolog.Logger
 }
@@ -69,6 +70,7 @@ type InfisicalClientInterface interface {
 	DynamicSecrets() DynamicSecretsInterface
 	Kms() KmsInterface
 	Ssh() SshInterface
+	AgentVault() AgentVaultInterface
 }
 
 type ExponentialBackoffStrategy struct {
@@ -288,6 +290,7 @@ func NewInfisicalClient(context context.Context, config Config) InfisicalClientI
 	client.dynamicSecrets = NewDynamicSecrets(client)
 	client.kms = NewKms(client)
 	client.ssh = NewSsh(client)
+	client.agentVault = NewAgentVault(client)
 	if config.CacheExpiryInSeconds != 0 {
 		// hard limit set at 1000 cache items until forced eviction
 		client.cache = expirable.NewLRU[string, interface{}](1000, nil, time.Second*time.Duration(config.CacheExpiryInSeconds))
@@ -460,6 +463,53 @@ func (c *InfisicalClient) Kms() KmsInterface {
 
 func (c *InfisicalClient) Ssh() SshInterface {
 	return c.ssh
+}
+
+func (c *InfisicalClient) AgentVault() AgentVaultInterface {
+	return c.agentVault
+}
+
+// isDialError reports whether err happened while connecting, before any of the request was sent.
+func isDialError(err error) bool {
+	var opErr *net.OpError
+	return errors.As(err, &opErr) && opErr.Op == "dial"
+}
+
+// onceHTTPClient returns a client for a request that must not run twice, such as one that creates a resource. It
+// shares the SDK client's connection, base URL, headers, CA certificate, access token and retry delays, but it retries
+// only when the connection never opened. Once a request may have reached the server, a retry could make the server
+// handle it twice.
+func (c *InfisicalClient) onceHTTPClient() *resty.Client {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	once := resty.NewWithClient(c.httpClient.GetClient()).
+		SetBaseURL(c.httpClient.BaseURL).
+		SetRetryCount(c.httpClient.RetryCount).
+		SetRetryWaitTime(c.httpClient.RetryWaitTime).
+		SetRetryMaxWaitTime(c.httpClient.RetryMaxWaitTime).
+		// Waits between retries as the SDK client does, including the delays set in RetryRequestsConfig.
+		SetRetryAfter(c.httpClient.RetryAfter).
+		AddRetryCondition(func(_ *resty.Response, err error) bool {
+			return isDialError(err)
+		})
+	once.Header = c.httpClient.Header.Clone()
+
+	// Reads the SDK client's access token before every attempt rather than once, so a retry sends the token the
+	// client has by then, after the background job may have signed in again. It runs before the refresh interceptor,
+	// which replaces the token on the request when it refreshes it.
+	once.OnBeforeRequest(func(_ *resty.Client, req *resty.Request) error {
+		c.mu.RLock()
+		defer c.mu.RUnlock()
+		req.SetAuthScheme(c.httpClient.AuthScheme)
+		req.SetAuthToken(c.httpClient.Token)
+		return nil
+	})
+	if autoTokenRefreshEnabled(c.config) {
+		once.OnBeforeRequest(c.beforeRequestAuthInterceptor)
+	}
+
+	return once
 }
 
 func (c *InfisicalClient) handleTokenLifeCycle(context context.Context) {
