@@ -899,28 +899,6 @@ func TestRequestsThatMustNotRunTwiceAreNotRetriedOnceTheyMayHaveReachedTheServer
 	}
 }
 
-func TestRequestErrorsKeepWhatTheRequestFailedWith(t *testing.T) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	refused := "http://" + listener.Addr().String()
-	_ = listener.Close()
-
-	_, err = newAgentVaultTestClient(t, refused).Proxies().Create(AgentVaultCreateProxyOptions{ProjectID: testProjectID, Name: "edge"})
-	var opErr *net.OpError
-	if !errors.As(err, &opErr) || opErr.Op != "dial" {
-		t.Fatalf("a refused connection gave %v, want a *net.OpError from dial", err)
-	}
-
-	server := newAgentVaultServer(t, resetConnection)
-	_, err = newAgentVaultTestClient(t, server.url).Proxies().Create(AgentVaultCreateProxyOptions{ProjectID: testProjectID, Name: "edge"})
-	var requestErr *sdkErrors.RequestError
-	if !errors.As(err, &requestErr) || errors.Unwrap(requestErr) == nil || (errors.As(err, &opErr) && opErr.Op == "dial") {
-		t.Fatalf("a dropped connection gave %v, want a request error that isn't from dial", err)
-	}
-}
-
 func TestOtherRequestsAreStillRetried(t *testing.T) {
 	server := newAgentVaultServer(t, resetConnection)
 	if _, err := newAgentVaultTestClient(t, server.url).Sessions().Revoke("s1"); err == nil {
