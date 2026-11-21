@@ -260,7 +260,7 @@ func TestProxiesCreateSendsDefaultsAndJoinsAllowedHosts(t *testing.T) {
 }
 
 func TestProxiesCreateLeavesOutEmptyAllowedHosts(t *testing.T) {
-	for _, hosts := range [][]string{nil, {}, {" "}, {"", ""}} {
+	for _, hosts := range [][]string{nil, {}} {
 		server := newAgentVaultServer(t, jsonResponse(200, map[string]any{"proxy": exampleProxy, "proxyToken": "t"}))
 		if _, err := newAgentVaultTestClient(t, server.url).Proxies().Create(AgentVaultCreateProxyOptions{ProjectID: testProjectID, Name: "edge", AllowedHosts: hosts}); err != nil {
 			t.Fatal(err)
@@ -268,6 +268,28 @@ func TestProxiesCreateLeavesOutEmptyAllowedHosts(t *testing.T) {
 		if _, ok := server.only().Body["allowedHosts"]; ok {
 			t.Fatalf("allowedHosts %q was sent", hosts)
 		}
+	}
+}
+
+func TestProxiesCreateRefusesAllowedHostsWithOnlyBlankEntries(t *testing.T) {
+	for _, hosts := range [][]string{{""}, {" ", ""}} {
+		server := newAgentVaultServer(t, jsonResponse(200, map[string]any{"proxy": exampleProxy, "proxyToken": "t"}))
+		if _, err := newAgentVaultTestClient(t, server.url).Proxies().Create(AgentVaultCreateProxyOptions{ProjectID: testProjectID, Name: "edge", AllowedHosts: hosts}); err == nil {
+			t.Fatalf("AllowedHosts %q was accepted", hosts)
+		}
+		if n := len(server.recorded()); n != 0 {
+			t.Fatalf("sent %d requests", n)
+		}
+	}
+}
+
+func TestDelegationsSetRequiresAScope(t *testing.T) {
+	server := newAgentVaultServer(t, jsonResponse(200, map[string]any{}))
+	if _, err := newAgentVaultTestClient(t, server.url).Delegations().Set("mi1", AgentVaultSetDelegationOptions{ProjectID: testProjectID, UserIDs: []string{"u1"}}); err == nil {
+		t.Fatal("a delegation without a scope was accepted")
+	}
+	if n := len(server.recorded()); n != 0 {
+		t.Fatalf("sent %d requests", n)
 	}
 }
 

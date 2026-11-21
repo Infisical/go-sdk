@@ -158,7 +158,8 @@ type AgentVaultCreateProxyOptions struct {
 	// cover. Defaults to AgentVaultTrafficPolicyAnyHost.
 	TrafficPolicy AgentVaultTrafficPolicy
 	// Hosts that stay reachable under the service-hosts traffic policy even though none of the session's services
-	// cover them. Blank entries are skipped.
+	// cover them. Blank entries are skipped, and a list with only blank entries is refused, so a host list read from
+	// an empty setting can't create a proxy with no allowed hosts by accident.
 	AllowedHosts []string
 	// How often, in seconds, the proxy refreshes its sessions and settings (10-300). Defaults to 60.
 	PollInterval int
@@ -314,7 +315,7 @@ type AgentVaultSetDelegationOptions struct {
 	// The ID of the Agent Vault project the delegation belongs to. Required.
 	ProjectID string
 	// AgentVaultDelegationScopeAllMembers for every Agent Vault member, admins included, or
-	// AgentVaultDelegationScopeSelected for only the users and groups you name.
+	// AgentVaultDelegationScopeSelected for only the users and groups you name. Required.
 	Scope AgentVaultDelegationScope
 	// With the selected scope, the users the machine identity can act on behalf of, up to 100. Each must be a member
 	// of Agent Vault. For a user who's in Agent Vault only through a group, name the group instead.
@@ -607,8 +608,12 @@ func (p *AgentVaultProxies) Create(options AgentVaultCreateProxyOptions) (AgentV
 		Description:   options.Description,
 	}
 	// An empty value means no allowed hosts, so it's left out.
-	if hosts, ok := joinHosts(options.AllowedHosts); ok {
+	hosts, ok := joinHosts(options.AllowedHosts)
+	switch {
+	case ok:
 		request.AllowedHosts = hosts
+	case len(options.AllowedHosts) > 0:
+		return AgentVaultProxyWithToken{}, errors.New("agent vault: AllowedHosts has only blank entries: leave it empty to create a proxy with no allowed hosts")
 	}
 
 	res, err := api.CallCreateProxyV1(p.client.onceHTTPClient(), request)
@@ -892,6 +897,9 @@ func (d *AgentVaultDelegations) Get(machineIdentityID string, options AgentVault
 func (d *AgentVaultDelegations) Set(machineIdentityID string, options AgentVaultSetDelegationOptions) (AgentVaultDelegation, error) {
 	if err := requireProject(options.ProjectID); err != nil {
 		return AgentVaultDelegation{}, err
+	}
+	if options.Scope == "" {
+		return AgentVaultDelegation{}, errors.New("agent vault: Scope is required: set it to AgentVaultDelegationScopeAllMembers or AgentVaultDelegationScopeSelected")
 	}
 
 	res, err := api.CallSetDelegationV1(d.client.httpClient, machineIdentityID, options.ProjectID, api.SetDelegationRequest{
