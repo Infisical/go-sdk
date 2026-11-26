@@ -114,6 +114,8 @@ func (s *Secrets) Update(options UpdateSecretOptions) (models.Secret, error) {
 		return models.Secret{}, err
 	}
 
+	s.client.invalidateCache()
+
 	return res.Secret, nil
 }
 
@@ -124,6 +126,8 @@ func (s *Secrets) Create(options CreateSecretOptions) (models.Secret, error) {
 		return models.Secret{}, err
 	}
 
+	s.client.invalidateCache()
+
 	return res.Secret, nil
 }
 
@@ -133,6 +137,8 @@ func (s *Secrets) Delete(options DeleteSecretOptions) (models.Secret, error) {
 	if err != nil {
 		return models.Secret{}, err
 	}
+
+	s.client.invalidateCache()
 
 	return res.Secret, nil
 }
@@ -145,6 +151,8 @@ func (bs *BatchSecrets) Create(options BatchCreateSecretsOptions) ([]models.Secr
 	if err != nil {
 		return nil, err
 	}
+
+	bs.client.invalidateCache()
 
 	return res.Secrets, nil
 }
